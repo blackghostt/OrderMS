@@ -23,4 +23,5 @@ public class Constantes {
 	public static final int TIPO_VALIDACION_AFILIACION = 2;
 	public static final int POR_EMAIL = 1;
 	public static final int POR_ID = 2;
+	public static final int ECATEPEC = 5;
 }

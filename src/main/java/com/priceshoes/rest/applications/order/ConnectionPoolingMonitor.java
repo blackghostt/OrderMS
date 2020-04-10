@@ -10,7 +10,6 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 @RequestMapping({ "/connections" })
 public class ConnectionPoolingMonitor {
-	@Autowired
 	private DataSource datasource;
 
 	@RequestMapping({ "/getInfo" })

@@ -48,7 +48,7 @@ public class MemberRepositoryHibernateImpl implements MemberRepositoryHibernate 
 	private JdbcTemplate jdbcTemplate;
 
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, rollbackFor = { Exception.class })
-	public SocioRespuesta saveMember(MemberBean memberBean) throws MemberCreationException {
+	public synchronized SocioRespuesta saveMember(MemberBean memberBean) throws MemberCreationException {
 		String id = null;
 		SocioRespuesta respuesta = new SocioRespuesta();
 		Socio socio = memberBean.getSocio();
@@ -59,21 +59,23 @@ public class MemberRepositoryHibernateImpl implements MemberRepositoryHibernate 
 		Boolean errorConocido = Boolean.valueOf(false);
 		Timestamp dateOfBirth = null;
 		Member member = memberBean.getPsSocio();
+		
+		Session session = sessionFactory.openSession();
 		Transaction tx = null;
 
 		try {
 			log.info("*********** INPUT JSON ************");
 			log.info((new Gson()).toJson(memberBean));
-			Session exp = this.sessionFactory.getCurrentSession();
-			tx = exp.beginTransaction();
-			SQLQuery query = exp.createSQLQuery("SELECT SYSDATE FROM DUAL");
+			
+			tx = session.beginTransaction();
+			SQLQuery query = session.createSQLQuery("SELECT SYSDATE FROM DUAL");
 			Iterator iterDate = query.list().iterator();
 			Date fechaServ = (Date) iterDate.next();
 			String key = null;
 
 			for (int contadorSeguridad = 3; key == null && contadorSeguridad > 0; --contadorSeguridad) {
 				Funciones membImage = new Funciones(Long.valueOf(5L));
-				exp.doWork(membImage);
+				session.doWork(membImage);
 				key = membImage.getIdSocio();
 				log.info(key);
 			}
@@ -100,7 +102,7 @@ public class MemberRepositoryHibernateImpl implements MemberRepositoryHibernate 
 			log.info(member.getSoFnacDt());
 			member.setSoFaltaDt(fechaServ);
 			member.setSoIdStr(key);
-			id = (String) exp.save(member);
+			id = (String) session.save(member);
 			if (id == null || id.equals("")) {
 				respuesta.setStatus("Member Not Created");
 				throw new MemberCreationException("Id is NULL");
@@ -113,7 +115,7 @@ public class MemberRepositoryHibernateImpl implements MemberRepositoryHibernate 
 				arg28.setSoIdStr(id);
 				arg28.setStoreId(member.getTiCveN());
 				arg28.setPhoto(memberBean.getImage());
-				exp.saveOrUpdate(arg28);
+				session.saveOrUpdate(arg28);
 			}
 
 			if (socio.getDirecciones() != null && socio.getDirecciones().getDireccion() != null
@@ -171,25 +173,35 @@ public class MemberRepositoryHibernateImpl implements MemberRepositoryHibernate 
 					dir.setPaisId(idPais);
 					dir.setEstadoId(estado);
 					dir.setMunicipioId(municipio);
-					exp.save(direccion);
+					session.save(direccion);
 				}
 			}
 		} catch (MemberCreationException arg23) {
+			if(tx!=null ) { tx.rollback(); }
 			respuesta.setCodigo(Constantes.COD_ERROR_SQL);
 			respuesta.setMensaje(arg23.toString());
 			log.error(arg23);
 		} catch (TransactionRequiredException arg24) {
+			if(tx!=null ) { tx.rollback(); }
 			respuesta.setCodigo(Constantes.COD_ERROR_EXCEPCION);
 			respuesta.setMensaje(arg24.toString());
 			log.error(arg24);
 		} catch (HibernateException arg25) {
+			if(tx!=null ) { tx.rollback(); }
 			respuesta.setCodigo(Constantes.COD_ERROR_EXCEPCION);
 			respuesta.setMensaje(arg25.toString());
 			log.error(arg25);
 		} catch (Exception arg26) {
+			if(tx!=null ) { tx.rollback(); }
 			respuesta.setCodigo(Constantes.COD_ERROR_EXCEPCION);
 			respuesta.setMensaje(arg26.toString());
 			log.error(arg26);
+		}finally 
+		{
+			if (session!=null)
+			{
+				session.close();
+			}
 		}
 
 		return respuesta;
