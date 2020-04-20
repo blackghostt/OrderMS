@@ -34,6 +34,7 @@ import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
@@ -46,7 +47,9 @@ public class MemberRepositoryHibernateImpl implements MemberRepositoryHibernate 
 	private SessionFactory sessionFactory;
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
-
+	
+	@Autowired private Environment env;
+	
 	@Transactional(readOnly = false, propagation = Propagation.REQUIRED, rollbackFor = { Exception.class })
 	public synchronized SocioRespuesta saveMember(MemberBean memberBean) throws MemberCreationException {
 		String id = null;
@@ -74,7 +77,7 @@ public class MemberRepositoryHibernateImpl implements MemberRepositoryHibernate 
 			String key = null;
 
 			for (int contadorSeguridad = 3; key == null && contadorSeguridad > 0; --contadorSeguridad) {
-				Funciones membImage = new Funciones(Long.valueOf(5L));
+				Funciones membImage = new Funciones(Long.valueOf(env.getProperty("price.sucursal")));
 				session.doWork(membImage);
 				key = membImage.getIdSocio();
 				log.info(key);

@@ -14,6 +14,7 @@ import com.priceshoes.rest.applications.entity.PsPedtmk;
 import com.priceshoes.rest.applications.entity.PsPedtmkDep;
 import com.priceshoes.rest.applications.entity.PsPedtmkDet;
 import com.priceshoes.rest.applications.entity.PsPedtmkDetPK;
+import com.priceshoes.rest.applications.entity.PsPedtmkVin;
 import com.priceshoes.rest.applications.repository.OrderRepository;
 import com.priceshoes.rest.applications.respuesta.PedidoRespuesta;
 import com.priceshoes.rest.applications.utils.Constantes;
@@ -31,6 +32,7 @@ import org.hibernate.SessionFactory;
 import org.hibernate.Transaction;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
@@ -43,6 +45,8 @@ public class OrderRepositoryImpl implements OrderRepository {
 	private SessionFactory sessionFactory;
 	@Autowired
 	private JdbcTemplate jdbcTemplate;
+	
+	@Autowired private Environment env;
 	
 	@Transactional(readOnly = false, rollbackFor = { Exception.class }, propagation = Propagation.REQUIRED)
 	public PedidoRespuesta savePedido(PedidoConsulta consulta) {
@@ -62,7 +66,9 @@ public class OrderRepositoryImpl implements OrderRepository {
 
 	// Modificacion de proceso - Onofre - 07/04/2020
 	// Se actualizo el metodo para soportar transacciones concurrentes ya que el pool se está agotando
-	public PedidoRespuesta guardaPedido(PedidoConsulta consulta) throws Exception {
+	public PedidoRespuesta guardaPedido(PedidoConsulta consulta) throws Exception 
+	{
+		Long SUCURSAL = Long.valueOf( env.getProperty("price.sucursal"));
 		PedidoRespuesta respuesta = new PedidoRespuesta();
 		Pedido pedidoAlta = consulta.getPedido();
 		Long consecutivo = Long.valueOf(1L);
@@ -345,7 +351,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 			arg48.getId().setPtNumN(value);
 			arg48.setPtRefN(value);
 			arg48.setSoIdStr(pedidoAlta.getSocioIdPs());
-			arg48.getId().setTiCveN(Long.valueOf(5L));
+			arg48.getId().setTiCveN(SUCURSAL);
 			arg48.setPtFecDt(fechaServ);
 			arg48.setUsrCvePstr(arg55);
 			arg48.setPtImporteN(pedidoAlta.getImporteTotal());
@@ -407,19 +413,6 @@ public class OrderRepositoryImpl implements OrderRepository {
 			log.info("Direccion pago\t: " + arg48.getPtSodFacN());
 			log.info("Forma de pedido\t: " + arg48.getPtOnlineN());
 			log.info("");
-			log.info("");
-			log.info("Pedido\t\t  : " + value);
-			log.info("Id usuario\t\t  : " + arg48.getSoIdStr());
-			log.info("Fecha de pedido   : " + arg48.getPtFecDt());
-			log.info("Usuario\t\t\t  : " + arg48.getUsrCvePstr());
-			log.info("Tipo de Pedido \t  : " + arg48.getPtTipStr());
-			log.info("Importe total \t  : " + arg48.getPtImporteN());
-			log.info("Gastos de envio\t  : " + arg48.getPtCosenvN());
-			log.info("Seguro Mensajeria : " + arg48.getPtSegmensN());
-			log.info("Direccion envio\t  : " + arg48.getPtSodEnvN());
-			log.info("Direccion pago\t  : " + arg48.getPtSodFacN());
-			log.info("Forma de pedido\t  : " + arg48.getPtOnlineN());
-			log.info("");
 			new PsPedtmkDet();
 			numArt = 0;
 			Iterator arg59 = pedidoAlta.getItems().getItem().iterator();
@@ -433,7 +426,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 				for (int altaDeposito = 0; altaDeposito < altaTmkDeposito; ++altaDeposito)
 				{
 					PsPedtmkDet arg58 = new PsPedtmkDet();
-					arg58.getId().setTiCveN(Long.valueOf(5L));
+					arg58.getId().setTiCveN(SUCURSAL);
 					arg58.getId().setPtNumN(arg48.getId().getPtNumN());
 					PsPedtmkDetPK arg9999 = arg58.getId();
 					Long oferta = consecutivo;
@@ -462,79 +455,91 @@ public class OrderRepositoryImpl implements OrderRepository {
 					log.info("Precio\t:" + arg58.getPtdPrecN());
 					log.info("Tipo   \t:" + arg58.getPtdEstStr());
 					log.info("");
-					log.info("");
-					log.info("Articulo :" + arg58.getIdArt());
-					log.info("Talla\t :" + arg58.getTaCveN());
-					log.info("Precio\t : " + arg58.getPtdPrecN());
-					log.info("Tipo\t : " + arg58.getPtdEstStr());
-					log.info("");
 				}//end for altaTmkDeposito
 			}// end while
-
-			if (pedidoAlta.getFormasPagos() != null)
+			
+			try
 			{
-				arg53 = sess.createSQLQuery("SELECT NVL(MAX(DEP_NUM_N),0)+1 AS DAP_NUM_N FROM PS_DEPOSITOS");
-				String arg60 = arg53.uniqueResult().toString();
-				Long arg62 = Long.valueOf(Long.parseLong(arg60));
-				new PsPedtmkDep();
-				new PsDeposito();
-				tx.commit();
-				tx = sess.beginTransaction();
-				Iterator arg65 = pedidoAlta.getFormasPagos().getItem().iterator();
-
-				while (arg65.hasNext())
+				if (pedidoAlta.getFormasPagos() != null)
 				{
-					FormaPagoPedido formaPago = (FormaPagoPedido) arg65.next();
-					String cveFormaPago = formaPago.getFormaPago();
-					PsFPagoEcomm fPagoEcomm = null;
-					Criteria critFP = sess.createCriteria(PsFPagoEcomm.class);
-					critFP.add(Restrictions.eq("fpeCveStr", cveFormaPago));
-					fPagoEcomm = (PsFPagoEcomm) critFP.uniqueResult();
-
-					if (fPagoEcomm.getFpeCveStr().equals("F"))
-					{	respuesta.setBandera(true);
-						respuesta.getFormaPagoPedido().setFormaPago(cveFormaPago);
-						respuesta.getFormaPagoPedido().setCantidad(formaPago.getCantidad());
-						this.guardarDoctos(value, respuesta.getFormaPagoPedido().getCantidad(),arg48.getSoIdStr(), sess);
-					} else if (fPagoEcomm.getFpeCveStr().equals("S"))
-					{	respuesta.setBanderaSaldo(true);
-						respuesta.getFormaPagoPedido().setFormaPago(cveFormaPago);
-						respuesta.getFormaPagoPedido().setCantidad(formaPago.getCantidad());
-						this.guardarSaldo(value, respuesta.getFormaPagoPedido().getCantidad(),arg48.getSoIdStr(), sess);
-					} else
+					arg53 = sess.createSQLQuery("SELECT NVL(MAX(DEP_NUM_N),0)+1 AS DAP_NUM_N FROM PS_DEPOSITOS");
+					String arg60 = arg53.uniqueResult().toString();
+					Long arg62 = Long.valueOf(Long.parseLong(arg60));
+					new PsPedtmkDep();
+					new PsDeposito();
+					tx.commit();
+					tx = sess.beginTransaction();
+					Iterator arg65 = pedidoAlta.getFormasPagos().getItem().iterator();
+	
+					while (arg65.hasNext())
 					{
-						if (!fPagoEcomm.getFpeCveStr().equals("K"))
+						FormaPagoPedido formaPago = (FormaPagoPedido) arg65.next();
+						String cveFormaPago = formaPago.getFormaPago();
+						PsFPagoEcomm fPagoEcomm = null;
+						Criteria critFP = sess.createCriteria(PsFPagoEcomm.class);
+						critFP.add(Restrictions.eq("fpeCveStr", cveFormaPago));
+						fPagoEcomm = (PsFPagoEcomm) critFP.uniqueResult();
+	
+						if (fPagoEcomm.getFpeCveStr().equals("F")) //FREE
+						{	
+							log.info("Forma de pago Free");
+							respuesta.setBandera(true);
+							respuesta.getFormaPagoPedido().setFormaPago(cveFormaPago);
+							respuesta.getFormaPagoPedido().setCantidad(formaPago.getCantidad());
+							this.guardarDoctos(value, respuesta.getFormaPagoPedido().getCantidad(),arg48.getSoIdStr(), sess);
+						} else if (fPagoEcomm.getFpeCveStr().equals("S")) //SALDO
+						{	
+							log.info("Forma de pago Saldo");
+							respuesta.setBanderaSaldo(true);
+							respuesta.getFormaPagoPedido().setFormaPago(cveFormaPago);
+							respuesta.getFormaPagoPedido().setCantidad(formaPago.getCantidad());
+							this.guardarSaldo(value, respuesta.getFormaPagoPedido().getCantidad(),arg48.getSoIdStr(), sess);
+						} else if (fPagoEcomm.getFpeCveStr().equals("C")) //CREDITO
 						{
-							PsPedtmkDep arg63 = new PsPedtmkDep();
-							arg63.getId().setTiCveN(5L);
-							arg63.getId().setPtNumN(value.longValue());
-							arg63.getId().setDepNumN(arg62.longValue());
-							arg63.setPtdepEstStr("A");
-							sess.save(arg63);
-							PsDeposito arg64 = new PsDeposito();
-							arg64.getId().setTiCveN(5L);
-							arg64.getId().setDepNumN(arg62.longValue());
-							arg64.setBaCveN(fPagoEcomm.getBaCveN());
-							arg64.setSoIdStr(pedidoAlta.getSocioIdPs());
-							arg64.setDepImpN(pedidoAlta.getImporteTotal());
-							arg64.setDepRefStr(formaPago.getReferencia().equals("") ? "009999" : formaPago.getReferencia());
-							arg64.setDepFechaDt(fechaServ);
-							arg64.setUsrCvePstr("FSL33276");
-							arg64.setDepFcaptDt(fechaServ);
-							arg64.setDepEstStr(pedidoAlta.getFormaPedido().equals("A") ? "A" : "T");
-							arg64.setDepTipoStr(fPagoEcomm.getFpeTipoStr());
-							arg64.setDepComisN(Integer.valueOf(0));
-							arg64.setDepPedN(Integer.valueOf(0));
-							arg64.setDepcRegN(Integer.valueOf(0));
-							arg64.setDepDestStr("K");
-							arg64.setFpeCveStr(cveFormaPago);
-							sess.save(arg64);
+							log.info("Forma de pago Credito ");
+							PsPedtmkVin tmkVin = new PsPedtmkVin(value,SUCURSAL,formaPago.getCantidad(),"A");
+							log.info("Credito " + new Gson().toJson(tmkVin));
+							sess.save(tmkVin);
 						}
-						arg62 = Long.valueOf(arg62.longValue() + 1L);
-					}
-				}//end while
-			}// end if getFormasPagos
-
+						else	
+						{
+							if (!fPagoEcomm.getFpeCveStr().equals("K"))
+							{
+								PsDeposito arg64 = new PsDeposito();
+								arg64.getId().setTiCveN(SUCURSAL);
+								arg64.getId().setDepNumN(arg62.longValue());
+								arg64.setBaCveN(fPagoEcomm.getBaCveN());
+								arg64.setSoIdStr(pedidoAlta.getSocioIdPs());
+								arg64.setDepImpN(pedidoAlta.getImporteTotal());
+								arg64.setDepRefStr(formaPago.getReferencia().equals("") ? "009999" : formaPago.getReferencia());
+								arg64.setDepFechaDt(fechaServ);
+								arg64.setUsrCvePstr("FSL33276");
+								arg64.setDepFcaptDt(fechaServ);
+								arg64.setDepEstStr(pedidoAlta.getFormaPedido().equals("A") ? "A" : "T");
+								arg64.setDepTipoStr(fPagoEcomm.getFpeTipoStr());
+								arg64.setDepComisN(Integer.valueOf(0));
+								arg64.setDepPedN(Integer.valueOf(0));
+								arg64.setDepcRegN(Integer.valueOf(0));
+								arg64.setDepDestStr("K");
+								arg64.setFpeCveStr(cveFormaPago);
+								sess.save(arg64);
+								
+								PsPedtmkDep arg63 = new PsPedtmkDep();
+								arg63.getId().setTiCveN(SUCURSAL);
+								arg63.getId().setPtNumN(value.longValue());
+								arg63.getId().setDepNumN(arg62.longValue());
+								arg63.setPtdepEstStr("A");
+								sess.save(arg63);
+							}
+							arg62 = Long.valueOf(arg62.longValue() + 1L);
+						}
+					}//end while
+				}// end if getFormasPagos
+			}catch(Exception e)
+			{
+				log.error( e.getMessage() , e );
+			}
+			
 			respuesta.setValue(value);
 
 			log.info("********** INSERTA PEDIDO MAGENTO EN EL SOFT **********");
@@ -542,7 +547,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 			log.info("Numero de Pedido Magento: " + consulta.getPedido().getPedidoMagento());
 			log.info("Numero de Pedido Soft   : " + value);
 			PedidoMagento pedidoMagento = new PedidoMagento();
-			pedidoMagento.setTiCveN(Constantes.ECATEPEC);
+			pedidoMagento.setTiCveN(SUCURSAL);
 			pedidoMagento.setPtmMagentoStr( pedidoAlta.getPedidoMagento() );
 			pedidoMagento.setPtNumN(value);
 			sess.save(pedidoMagento);

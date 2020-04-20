@@ -18,7 +18,7 @@ public class PedidoMagento
 	private String ptmMagentoStr;
 	
 	@Column(name="TI_CVE_N") 		
-	private Integer tiCveN;
+	private Long tiCveN;
 	
 	@Column(name="PT_NUM_N") 		
 	private Long ptNumN;
@@ -30,10 +30,10 @@ public class PedidoMagento
 	@Column(name="PTM_EST_STR", insertable = false) 	
 	private String ptmEStStr;
 	
-	public Integer getTiCveN() {
+	public Long getTiCveN() {
 		return tiCveN;
 	}
-	public void setTiCveN(Integer tiCveN) {
+	public void setTiCveN(Long tiCveN) {
 		this.tiCveN = tiCveN;
 	}
 	public Long getPtNumN() {
