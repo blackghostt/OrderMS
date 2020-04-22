@@ -79,7 +79,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 		log.info("************ INPUT JSON *************");
 		log.info((new Gson()).toJson(consulta));
 		log.info("********** BUSCAR PEDIDO MAGENTO EN EL SOFT **********");
-		log.info("Numero de Socio: " + consulta.getPedido().getSocioIdPs());
+		log.info("Numero de Socio: " + consulta.getPedido().getSocioIdPs().trim());
 		log.info("Numero de Pedido Magento: " + consulta.getPedido().getPedidoMagento());
 		
 		try
@@ -189,7 +189,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 			for (int arg46 = 0; arg46 < idDirecciones.length; ++arg46)
 			{
 				Criteria arg50 = sess.createCriteria(MemberAddress.class);
-				arg50.add(Restrictions.eq("id.soIdStr", pedidoAlta.getSocioIdPs()))
+				arg50.add(Restrictions.eq("id.soIdStr", pedidoAlta.getSocioIdPs().trim()))
 						.add(Restrictions.eq("id.sodConsN", Long.valueOf(idDirecciones[arg46].longValue())));
 
 				MemberAddress arg52 = (MemberAddress) arg50.uniqueResult();
@@ -200,8 +200,8 @@ public class OrderRepositoryImpl implements OrderRepository {
 				{
 					log.info("Creando Dir");
 					log.info("MemberAddress" + new Gson().toJson(arg52));
-					log.info("pedidoAlta.getSocioIdPs " +new Gson().toJson(pedidoAlta.getSocioIdPs()));
-					arg56.getId().setSoIdStr(pedidoAlta.getSocioIdPs());
+					log.info("pedidoAlta.getSocioIdPs " +new Gson().toJson(pedidoAlta.getSocioIdPs().trim()));
+					arg56.getId().setSoIdStr(pedidoAlta.getSocioIdPs().trim());
 					arg56.getId().setSodConsN(Long.valueOf(idDirecciones[arg46].longValue()));
 					arg56.setSodEstStr("A");
 
@@ -350,7 +350,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 			Date fechaServ = (Date) iterDate.next();
 			arg48.getId().setPtNumN(value);
 			arg48.setPtRefN(value);
-			arg48.setSoIdStr(pedidoAlta.getSocioIdPs());
+			arg48.setSoIdStr(pedidoAlta.getSocioIdPs().trim());
 			arg48.getId().setTiCveN(SUCURSAL);
 			arg48.setPtFecDt(fechaServ);
 			arg48.setUsrCvePstr(arg55);
@@ -509,7 +509,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 								arg64.getId().setTiCveN(SUCURSAL);
 								arg64.getId().setDepNumN(arg62.longValue());
 								arg64.setBaCveN(fPagoEcomm.getBaCveN());
-								arg64.setSoIdStr(pedidoAlta.getSocioIdPs());
+								arg64.setSoIdStr(pedidoAlta.getSocioIdPs().trim());
 								arg64.setDepImpN(pedidoAlta.getImporteTotal());
 								arg64.setDepRefStr(formaPago.getReferencia().equals("") ? "009999" : formaPago.getReferencia());
 								arg64.setDepFechaDt(fechaServ);
@@ -543,7 +543,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 			respuesta.setValue(value);
 
 			log.info("********** INSERTA PEDIDO MAGENTO EN EL SOFT **********");
-			log.info("Numero de Socio: " + pedidoAlta.getSocioIdPs());
+			log.info("Numero de Socio: " + pedidoAlta.getSocioIdPs().trim());
 			log.info("Numero de Pedido Magento: " + consulta.getPedido().getPedidoMagento());
 			log.info("Numero de Pedido Soft   : " + value);
 			PedidoMagento pedidoMagento = new PedidoMagento();
@@ -603,7 +603,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 			if (pRegresa == -1) {
 				errorConocido = true;
 				respuesta.setCodigo(Constantes.COD_ERROR_SQL);
-				respuesta.setMensaje("Ocurrio un error en la transaciÃ³n de vales y notas de credito.");
+				respuesta.setMensaje("Ocurrio un error en la transacion de vales y notas de credito.");
 			} else if (pRegresa == 0) {
 				errorConocido = true;
 				respuesta.setCodigo(Constantes.COD_ERROR_SQL);
