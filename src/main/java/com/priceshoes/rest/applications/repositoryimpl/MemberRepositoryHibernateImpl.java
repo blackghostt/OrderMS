@@ -215,13 +215,19 @@ public class MemberRepositoryHibernateImpl implements MemberRepositoryHibernate 
 		MemberBalance memberBalance = null;
 
 		try {
-			String ex = "SELECT PCK_MAGENTO.F_GET_SALDO_NC(\'" + id + "\') as NC,PCK_MAGENTO.F_GET_SALDO_VALES(\'" + id
-					+ "\') as VALES,PCK_MAGENTO.F_GET_SALDO_DEPOSITOS(\'" + id
-					+ "\') as DEPOSITOS,PCK_MAGENTO.F_GET_SALDO_SOCIO(\'" + id + "\') as SOCIO FROM DUAL";
+			String ex = "SELECT PCK_MAGENTO.F_GET_SALDO_NC   (\'"+id+"\') as NC, "
+					+ " PCK_MAGENTO.F_GET_SALDO_VALES 		 (\'"+id+"\') as VALES, "
+					+ " PCK_MAGENTO.F_GET_SALDO_DEPOSITOS	 (\'"+id+"\') as DEPOSITOS, "
+					+ " PCK_MAGENTO.F_GET_SALDO_SOCIO		 (\'"+id+"\') as SOCIO, "
+					+ " (SELECT NVL(SUM(A.VA_MONTO_N),0) "
+					+ " FROM PS_VALES A WHERE A.SO_ID_STR = '"+id+"'  "
+					+ " AND A.VA_EXC_STR = 'F' AND A.VA_EST_STR='A') AS CUPON  "
+					+ "  FROM DUAL ";
 			List memberBalances = this.jdbcTemplate.query(ex, new MemberBalanceRowMapper());
 			if (memberBalances != null && memberBalances.size() > 0) {
 				memberBalance = (MemberBalance) memberBalances.get(0);
 			}
+			log.info(" Balance "+id+" "+new Gson().toJson(memberBalance));
 		} catch (JDBCException arg4) {
 			log.error(arg4.toString());
 		} catch (Exception arg5) {

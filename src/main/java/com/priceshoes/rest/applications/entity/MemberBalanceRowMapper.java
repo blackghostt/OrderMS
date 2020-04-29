@@ -12,6 +12,7 @@ public class MemberBalanceRowMapper implements RowMapper<MemberBalance> {
 		memberBalance.setVales(rs.getBigDecimal("VALES"));
 		memberBalance.setDepositos(rs.getBigDecimal("DEPOSITOS"));
 		memberBalance.setSaldo(rs.getBigDecimal("SOCIO"));
+		memberBalance.setCupon(rs.getBigDecimal("CUPON"));
 		return memberBalance;
 	}
 }
