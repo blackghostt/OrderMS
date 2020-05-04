@@ -643,6 +643,9 @@ public class OrderRepositoryImpl implements OrderRepository {
 			insertado=false;
 			log.error("Falló el registro del depósito ");
 			log.error(e.getMessage(), e );
+		}finally 
+		{
+			sess.close();
 		}
 		return insertado;
 	}
