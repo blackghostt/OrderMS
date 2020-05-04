@@ -7,7 +7,8 @@ public class MemberBalance {
 	private BigDecimal vales;
 	private BigDecimal depositos;
 	private BigDecimal saldo;
-
+	private BigDecimal cupon;
+	
 	public BigDecimal getNC() {
 		return this.NC;
 	}
@@ -38,5 +39,13 @@ public class MemberBalance {
 
 	public void setSaldo(BigDecimal saldo) {
 		this.saldo = saldo;
+	}
+
+	public BigDecimal getCupon() {
+		return cupon;
+	}
+
+	public void setCupon(BigDecimal cupon) {
+		this.cupon = cupon;
 	}
 }

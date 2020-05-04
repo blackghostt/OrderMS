@@ -25,7 +25,7 @@ public class AppConfig {
 	@Value("${maximumPoolSize}") private Integer maximumPoolSize;
 	@Value("${dataSourceClassName}") private String dataSourceClassName;
 	@Value("${hibernate.show_sql}") private Boolean showSql;
-	
+	@Value("${price.sucursal}") private Integer priceSucursal;
 	
 	@Bean
 	public LocalSessionFactoryBean sessionFactoryLocal() 
@@ -43,7 +43,7 @@ public class AppConfig {
 		return sessionFactory;
 	}
 	
-	@Bean
+	@Bean(name = "dataSource-T98")
 	public HikariDataSource getDataSource()	
 	{
 		final HikariDataSource ds = new HikariDataSource();
@@ -52,6 +52,7 @@ public class AppConfig {
 		ds.addDataSourceProperty("url",jdbcUrl);
 		ds.addDataSourceProperty("user",username);
 		ds.addDataSourceProperty("password",password);
+		ds.setPoolName("restPoolHikari-T"+priceSucursal);
 		return ds;
 	}
 
