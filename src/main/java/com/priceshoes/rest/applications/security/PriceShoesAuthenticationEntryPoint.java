@@ -9,9 +9,11 @@ import org.springframework.security.web.AuthenticationEntryPoint;
 import org.springframework.stereotype.Component;
 
 @Component
-public class PriceShoesAuthenticationEntryPoint implements AuthenticationEntryPoint {
+public class PriceShoesAuthenticationEntryPoint implements AuthenticationEntryPoint 
+{
 	public void commence(HttpServletRequest pRequest, HttpServletResponse pResponse,
-			AuthenticationException authException) throws IOException, ServletException {
-		pResponse.sendError(401, "Unauthorized");
+			AuthenticationException authException) throws IOException, ServletException 
+	{
+		pResponse.sendError(401, "Unauthorized"); 
 	}
 }

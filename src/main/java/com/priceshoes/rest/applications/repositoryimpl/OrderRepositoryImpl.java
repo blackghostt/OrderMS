@@ -11,6 +11,7 @@ import com.priceshoes.rest.applications.entity.Procedure;
 import com.priceshoes.rest.applications.entity.PsDeposito;
 import com.priceshoes.rest.applications.entity.PsFPagoEcomm;
 import com.priceshoes.rest.applications.entity.PsPedtmk;
+import com.priceshoes.rest.applications.entity.PsPedtmkAplval;
 import com.priceshoes.rest.applications.entity.PsPedtmkDep;
 import com.priceshoes.rest.applications.entity.PsPedtmkDet;
 import com.priceshoes.rest.applications.entity.PsPedtmkDetPK;
@@ -19,8 +20,6 @@ import com.priceshoes.rest.applications.repository.OrderRepository;
 import com.priceshoes.rest.applications.respuesta.PedidoRespuesta;
 import com.priceshoes.rest.applications.utils.Constantes;
 import java.math.BigDecimal;
-import java.sql.CallableStatement;
-import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.Iterator;
@@ -33,7 +32,6 @@ import org.hibernate.Transaction;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -41,19 +39,15 @@ import org.springframework.transaction.annotation.Transactional;
 @Repository
 public class OrderRepositoryImpl implements OrderRepository {
 	private static Logger log = Logger.getLogger(OrderRepositoryImpl.class);
-	@Autowired
-	private SessionFactory sessionFactory;
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
-	
-	@Autowired private Environment env;
+	@Autowired	private SessionFactory sessionFactory;
+	@Autowired 	private Environment env;
 	
 	@Transactional(readOnly = false, rollbackFor = { Exception.class }, propagation = Propagation.REQUIRED)
 	public PedidoRespuesta savePedido(PedidoConsulta consulta) {
 		PedidoRespuesta respuesta = new PedidoRespuesta();
 
-		try {
-			log.info("2");
+		try 
+		{
 			respuesta = this.guardaPedido(consulta);
 		} catch (Exception arg3) {
 			log.info((new Gson()).toJson(consulta));
@@ -66,6 +60,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 
 	// Modificacion de proceso - Onofre - 07/04/2020
 	// Se actualizo el metodo para soportar transacciones concurrentes ya que el pool se está agotando
+	@SuppressWarnings("rawtypes")
 	public PedidoRespuesta guardaPedido(PedidoConsulta consulta) throws Exception 
 	{
 		Long SUCURSAL = Long.valueOf( env.getProperty("price.sucursal"));
@@ -74,12 +69,12 @@ public class OrderRepositoryImpl implements OrderRepository {
 		Long consecutivo = Long.valueOf(1L);
 		Long value = Long.valueOf(0L);
 		boolean errorConocido = false;
-
+		String soIdStr = pedidoAlta.getSocioIdPs().trim();
 		log.info("Entrando a método guardaPedido");
 		log.info("************ INPUT JSON *************");
 		log.info((new Gson()).toJson(consulta));
 		log.info("********** BUSCAR PEDIDO MAGENTO EN EL SOFT **********");
-		log.info("Numero de Socio: " + consulta.getPedido().getSocioIdPs().trim());
+		log.info("Numero de Socio: " + soIdStr);
 		log.info("Numero de Pedido Magento: " + consulta.getPedido().getPedidoMagento());
 		
 		try
@@ -134,6 +129,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 							((FormaPagoPedido) pedidoAlta.getFormasPagos().getItem().get(0)).getCantidad()  != null )
 					{
 						String query = iter.getFormaPago();
+						log.info("iter.getFormaPago " + query );
 						String iterUser = "";
 						iterUser = iterUser + "SELECT CLAVE ";
 						iterUser = iterUser + "  FROM (SELECT ROWNUM AS CONSE, CLAVE";
@@ -146,6 +142,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 						iterUser = iterUser + " WHERE CONSE = 2";
 						SQLQuery usuario = sess.createSQLQuery(iterUser);
 						query = (String) usuario.uniqueResult();
+						log.info("Forma pago " + query );
 						if (query.equals("0"))
 						{	errorConocido = true;
 							respuesta.setCodigo(Constantes.COD_ERROR_FORMATO_DIRECCION);
@@ -189,7 +186,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 			for (int arg46 = 0; arg46 < idDirecciones.length; ++arg46)
 			{
 				Criteria arg50 = sess.createCriteria(MemberAddress.class);
-				arg50.add(Restrictions.eq("id.soIdStr", pedidoAlta.getSocioIdPs().trim()))
+				arg50.add(Restrictions.eq("id.soIdStr", soIdStr ))
 						.add(Restrictions.eq("id.sodConsN", Long.valueOf(idDirecciones[arg46].longValue())));
 
 				MemberAddress arg52 = (MemberAddress) arg50.uniqueResult();
@@ -200,8 +197,8 @@ public class OrderRepositoryImpl implements OrderRepository {
 				{
 					log.info("Creando Dir");
 					log.info("MemberAddress" + new Gson().toJson(arg52));
-					log.info("pedidoAlta.getSocioIdPs " +new Gson().toJson(pedidoAlta.getSocioIdPs().trim()));
-					arg56.getId().setSoIdStr(pedidoAlta.getSocioIdPs().trim());
+					log.info("pedidoAlta.getSocioIdPs " +new Gson().toJson(soIdStr));
+					arg56.getId().setSoIdStr(soIdStr);
 					arg56.getId().setSodConsN(Long.valueOf(idDirecciones[arg46].longValue()));
 					arg56.setSodEstStr("A");
 
@@ -350,7 +347,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 			Date fechaServ = (Date) iterDate.next();
 			arg48.getId().setPtNumN(value);
 			arg48.setPtRefN(value);
-			arg48.setSoIdStr(pedidoAlta.getSocioIdPs().trim());
+			arg48.setSoIdStr(soIdStr);
 			arg48.getId().setTiCveN(SUCURSAL);
 			arg48.setPtFecDt(fechaServ);
 			arg48.setUsrCvePstr(arg55);
@@ -458,13 +455,8 @@ public class OrderRepositoryImpl implements OrderRepository {
 				}//end for altaTmkDeposito
 			}// end while
 			
-			try
-			{
 				if (pedidoAlta.getFormasPagos() != null)
 				{
-					arg53 = sess.createSQLQuery("SELECT NVL(MAX(DEP_NUM_N),0)+1 AS DAP_NUM_N FROM PS_DEPOSITOS");
-					String arg60 = arg53.uniqueResult().toString();
-					Long arg62 = Long.valueOf(Long.parseLong(arg60));
 					new PsPedtmkDep();
 					new PsDeposito();
 					tx.commit();
@@ -501,49 +493,55 @@ public class OrderRepositoryImpl implements OrderRepository {
 							log.info("Credito " + new Gson().toJson(tmkVin));
 							sess.save(tmkVin);
 						}
+						 else if (fPagoEcomm.getFpeCveStr().equals("V")) //VALE
+						{	log.info("Utilizar vale ");
+							try 
+							{	String query = " SELECT VA_NUM_N FROM PS_VALES A " + 
+												" WHERE A.VA_EXC_STR = 'F' " + 
+												" AND A.VA_EST_STR='A' " + 
+												" AND A.SO_ID_STR = '"+soIdStr+"' ";
+								BigDecimal result = (BigDecimal) sess.createSQLQuery(query).uniqueResult();
+								log.info(" Vale " + new Gson().toJson(result));
+								if( result!=null && result.longValue() > 0 )
+								{
+									PsPedtmkAplval valeAfi = new PsPedtmkAplval(value,SUCURSAL,result.longValue(),1);
+									log.info("valeAfi " + new Gson().toJson(valeAfi));
+									sess.save(valeAfi);
+								}
+							}catch (Exception e){ log.error(e.getMessage(),e); }
+						}
 						else	
 						{
 							if (!fPagoEcomm.getFpeCveStr().equals("K"))
 							{
-								PsDeposito arg64 = new PsDeposito();
-								arg64.getId().setTiCveN(SUCURSAL);
-								arg64.getId().setDepNumN(arg62.longValue());
-								arg64.setBaCveN(fPagoEcomm.getBaCveN());
-								arg64.setSoIdStr(pedidoAlta.getSocioIdPs().trim());
-								arg64.setDepImpN(pedidoAlta.getImporteTotal());
-								arg64.setDepRefStr(formaPago.getReferencia().equals("") ? "009999" : formaPago.getReferencia());
-								arg64.setDepFechaDt(fechaServ);
-								arg64.setUsrCvePstr("FSL33276");
-								arg64.setDepFcaptDt(fechaServ);
-								arg64.setDepEstStr(pedidoAlta.getFormaPedido().equals("A") ? "A" : "T");
-								arg64.setDepTipoStr(fPagoEcomm.getFpeTipoStr());
-								arg64.setDepComisN(Integer.valueOf(0));
-								arg64.setDepPedN(Integer.valueOf(0));
-								arg64.setDepcRegN(Integer.valueOf(0));
-								arg64.setDepDestStr("K");
-								arg64.setFpeCveStr(cveFormaPago);
-								sess.save(arg64);
-								
-								PsPedtmkDep arg63 = new PsPedtmkDep();
-								arg63.getId().setTiCveN(SUCURSAL);
-								arg63.getId().setPtNumN(value.longValue());
-								arg63.getId().setDepNumN(arg62.longValue());
-								arg63.setPtdepEstStr("A");
-								sess.save(arg63);
+								boolean insertado = false;
+								int countDep = 1;
+								while(!insertado && countDep <= 10 )
+								{
+									log.info("Deposito intento "+countDep);
+									insertado = registrarDeposito
+												(countDep,
+												SUCURSAL,
+												value.longValue(),
+												fPagoEcomm.getBaCveN(),
+												soIdStr,
+												pedidoAlta.getImporteTotal(),
+												formaPago.getReferencia().equals("") ? "009999" : formaPago.getReferencia(),
+												fechaServ,	
+												pedidoAlta.getFormaPedido().equals("A") ? "A" : "T",
+												fPagoEcomm.getFpeTipoStr(),
+												cveFormaPago);
+									countDep++;
+								}
 							}
-							arg62 = Long.valueOf(arg62.longValue() + 1L);
 						}
 					}//end while
 				}// end if getFormasPagos
-			}catch(Exception e)
-			{
-				log.error( e.getMessage() , e );
-			}
 			
 			respuesta.setValue(value);
 
 			log.info("********** INSERTA PEDIDO MAGENTO EN EL SOFT **********");
-			log.info("Numero de Socio: " + pedidoAlta.getSocioIdPs().trim());
+			log.info("Numero de Socio: " + soIdStr );
 			log.info("Numero de Pedido Magento: " + consulta.getPedido().getPedidoMagento());
 			log.info("Numero de Pedido Soft   : " + value);
 			PedidoMagento pedidoMagento = new PedidoMagento();
@@ -588,7 +586,70 @@ public class OrderRepositoryImpl implements OrderRepository {
 		log.info(" ==== fin de registro de orden ");
 		return respuesta;
 	}
+	
+	private boolean registrarDeposito(int count, Long sucursal,Long pedido, Long baCveN, String soIdStr,Double importeTotal,
+			String referencia, Date fechaServ, String formaPedido, String depTipo, String cveFormaPago)
+	{
+		boolean insertado = true;
+		Session sess = sessionFactory.openSession();
+		Transaction tx = null;
+		PsPedtmkDep arg63 = new PsPedtmkDep();
+		PsDeposito arg64 = new PsDeposito();
+		
+		try
+		{
+			tx = sess.beginTransaction();
+			SQLQuery arg53 = sess.createSQLQuery("SELECT NVL(MAX(DEP_NUM_N),0)+1 AS DAP_NUM_N FROM PS_DEPOSITOS");
+			String arg60 = arg53.uniqueResult().toString();
+			Long deposito = Long.valueOf(Long.parseLong(arg60));
+			
+			arg64.getId().setTiCveN(sucursal);
+			arg64.getId().setDepNumN(deposito);
+			arg64.setBaCveN(baCveN);
+			arg64.setSoIdStr(soIdStr);
+			arg64.setDepImpN(importeTotal);
+			arg64.setDepRefStr(referencia);
+			arg64.setDepFechaDt(fechaServ);
+			arg64.setUsrCvePstr("FSL33276");
+			arg64.setDepFcaptDt(fechaServ);
+			arg64.setDepEstStr(formaPedido);
+			arg64.setDepTipoStr(depTipo);
+			arg64.setDepComisN(Integer.valueOf(0));
+			arg64.setDepPedN(Integer.valueOf(0));
+			arg64.setDepcRegN(Integer.valueOf(0));
+			arg64.setDepDestStr("K");
+			arg64.setFpeCveStr(cveFormaPago);
+			sess.save(arg64);
 
+			log.info("Registrando deposito " + new Gson().toJson(arg64));
+			
+			try { 
+				
+				arg63.getId().setTiCveN(sucursal);
+				arg63.getId().setPtNumN(pedido);
+				arg63.getId().setDepNumN(deposito);
+				arg63.setPtdepEstStr("A");
+				sess.save(arg63);
+				log.info("Registrando relacion deposito " + new Gson().toJson(arg63));
+			}catch (Exception e) 
+			{
+				log.error("Falló registro de relacion pedido-deposito");
+				log.error(e.getMessage(),e);
+			}
+			tx.commit();
+		}catch (Exception e) 
+		{
+			tx.rollback();
+			insertado=false;
+			log.error("Falló el registro del depósito ");
+			log.error(e.getMessage(), e );
+		}finally 
+		{
+			sess.close();
+		}
+		return insertado;
+	}
+	
 	public PedidoRespuesta guardarDoctos(Long value, Double Cantidad, String IdSocio, Session sess)
 			throws SQLException {
 		PedidoRespuesta respuesta = new PedidoRespuesta();

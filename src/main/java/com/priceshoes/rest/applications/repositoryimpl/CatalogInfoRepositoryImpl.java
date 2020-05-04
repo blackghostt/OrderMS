@@ -39,7 +39,8 @@ public class CatalogInfoRepositoryImpl implements CatalogInfoRepository {
 					+ "\' union SELECT DISTINCT DECODE(c.tar_cve_n, 4, c.id_art, C.id_art) Id_Art, DECODE(c.tar_cve_n, 4,c.ar_desc_str, (SELECT e.ar_desc_str FROM articulo@LRCORPPRICE e WHERE d.id_art = e.id_art)) Desc_Catalogo FROM PS_PEDTMK A  INNER JOIN PS_PEDTMK_DET B ON (B.TI_CVE_N = A.TI_CVE_N AND B.PT_NUM_N=A.PT_NUM_N ) INNER JOIN ARTICULO@LRCORPPRICE C ON (C.ID_ART = B.ID_ART AND C.TAR_CVE_N IN(4,8) ) INNER JOIN PS_TIPART D ON (D.TAR_CVE_N = C.TAR_CVE_N) LEFT JOIN detpaq d ON (b.id_art = d.art_id_art AND EXISTS (SELECT x.tar_cve_n FROM articulo x WHERE d.id_art = x.id_art AND x.tar_cve_n IN (4, 8))) WHERE A.PT_EST_STR IN (\'A\',\'V\') AND A.SO_ID_STR = \'"
 					+ memberId + "\'";
 			catalogInfo = this.jdbcTemplate.query(ex, new CatalogInfoRowMapper());
-			if (catalogInfo.size() <= 0) {
+			if (catalogInfo.size() <= 0) 
+			{
 				Criteria crit = this.sessionFactory.getCurrentSession().createCriteria(Member.class);
 				crit.add(Restrictions.eq("soIdStr", memberId));
 				Member psSocio = (Member) crit.uniqueResult();
