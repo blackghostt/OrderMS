@@ -90,8 +90,12 @@ public class MemberRepositoryHibernateImpl implements MemberRepositoryHibernate 
 			if (member == null) {
 				throw new BeanNotFoundException("psSocio Bean not found in the request");
 			}
-
-			member.setSoNomStr(socio.getNombre());
+			String nombreSocio = socio.getNombre();
+			if( nombreSocio !=null && nombreSocio.length() > 29 ) 
+			{
+				nombreSocio = nombreSocio.substring(0,29);
+			}	
+			member.setSoNomStr(nombreSocio);
 			member.setSoApatStr(socio.getApellidoPaterno());
 			member.setSoAmatStr(socio.getApellidoMaterno());
 			if (member.getSoFnacDt() != null) {

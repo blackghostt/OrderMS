@@ -455,13 +455,8 @@ public class OrderRepositoryImpl implements OrderRepository {
 				}//end for altaTmkDeposito
 			}// end while
 			
-			try
-			{
 				if (pedidoAlta.getFormasPagos() != null)
 				{
-					arg53 = sess.createSQLQuery("SELECT NVL(MAX(DEP_NUM_N),0)+1 AS DAP_NUM_N FROM PS_DEPOSITOS");
-					String arg60 = arg53.uniqueResult().toString();
-					Long arg62 = Long.valueOf(Long.parseLong(arg60));
 					new PsPedtmkDep();
 					new PsDeposito();
 					tx.commit();
@@ -519,43 +514,29 @@ public class OrderRepositoryImpl implements OrderRepository {
 						{
 							if (!fPagoEcomm.getFpeCveStr().equals("K"))
 							{
-								PsDeposito arg64 = new PsDeposito();
-								arg64.getId().setTiCveN(SUCURSAL);
-								arg64.getId().setDepNumN(arg62.longValue());
-								arg64.setBaCveN(fPagoEcomm.getBaCveN());
-								arg64.setSoIdStr(soIdStr);
-								arg64.setDepImpN(pedidoAlta.getImporteTotal());
-								arg64.setDepRefStr(formaPago.getReferencia().equals("") ? "009999" : formaPago.getReferencia());
-								arg64.setDepFechaDt(fechaServ);
-								arg64.setUsrCvePstr("FSL33276");
-								arg64.setDepFcaptDt(fechaServ);
-								arg64.setDepEstStr(pedidoAlta.getFormaPedido().equals("A") ? "A" : "T");
-								arg64.setDepTipoStr(fPagoEcomm.getFpeTipoStr());
-								arg64.setDepComisN(Integer.valueOf(0));
-								arg64.setDepPedN(Integer.valueOf(0));
-								arg64.setDepcRegN(Integer.valueOf(0));
-								arg64.setDepDestStr("K");
-								arg64.setFpeCveStr(cveFormaPago);
-								sess.save(arg64);
-								
-								PsPedtmkDep arg63 = new PsPedtmkDep();
-								arg63.getId().setTiCveN(SUCURSAL);
-								arg63.getId().setPtNumN(value.longValue());
-								arg63.getId().setDepNumN(arg62.longValue());
-								arg63.setPtdepEstStr("A");
-								sess.save(arg63);
-								log.info("Registrando deposito " + new Gson().toJson(arg64));
-								log.info("Registrando relacion deposito " + new Gson().toJson(arg63));
-								
-								arg62 = Long.valueOf(arg62.longValue() + 1L);
+								boolean insertado = false;
+								int countDep = 1;
+								while(!insertado && countDep <= 10 )
+								{
+									log.info("Deposito intento "+countDep);
+									insertado = registrarDeposito
+												(countDep,
+												SUCURSAL,
+												value.longValue(),
+												fPagoEcomm.getBaCveN(),
+												soIdStr,
+												pedidoAlta.getImporteTotal(),
+												formaPago.getReferencia().equals("") ? "009999" : formaPago.getReferencia(),
+												fechaServ,	
+												pedidoAlta.getFormaPedido().equals("A") ? "A" : "T",
+												fPagoEcomm.getFpeTipoStr(),
+												cveFormaPago);
+									countDep++;
+								}
 							}
 						}
 					}//end while
 				}// end if getFormasPagos
-			}catch(Exception e)
-			{
-				log.error( e.getMessage() , e );
-			}
 			
 			respuesta.setValue(value);
 
@@ -605,7 +586,67 @@ public class OrderRepositoryImpl implements OrderRepository {
 		log.info(" ==== fin de registro de orden ");
 		return respuesta;
 	}
+	
+	private boolean registrarDeposito(int count, Long sucursal,Long pedido, Long baCveN, String soIdStr,Double importeTotal,
+			String referencia, Date fechaServ, String formaPedido, String depTipo, String cveFormaPago)
+	{
+		boolean insertado = true;
+		Session sess = sessionFactory.openSession();
+		Transaction tx = null;
+		PsPedtmkDep arg63 = new PsPedtmkDep();
+		PsDeposito arg64 = new PsDeposito();
+		
+		try
+		{
+			tx = sess.beginTransaction();
+			SQLQuery arg53 = sess.createSQLQuery("SELECT NVL(MAX(DEP_NUM_N),0)+1 AS DAP_NUM_N FROM PS_DEPOSITOS");
+			String arg60 = arg53.uniqueResult().toString();
+			Long deposito = Long.valueOf(Long.parseLong(arg60));
+			
+			arg64.getId().setTiCveN(sucursal);
+			arg64.getId().setDepNumN(deposito);
+			arg64.setBaCveN(baCveN);
+			arg64.setSoIdStr(soIdStr);
+			arg64.setDepImpN(importeTotal);
+			arg64.setDepRefStr(referencia);
+			arg64.setDepFechaDt(fechaServ);
+			arg64.setUsrCvePstr("FSL33276");
+			arg64.setDepFcaptDt(fechaServ);
+			arg64.setDepEstStr(formaPedido);
+			arg64.setDepTipoStr(depTipo);
+			arg64.setDepComisN(Integer.valueOf(0));
+			arg64.setDepPedN(Integer.valueOf(0));
+			arg64.setDepcRegN(Integer.valueOf(0));
+			arg64.setDepDestStr("K");
+			arg64.setFpeCveStr(cveFormaPago);
+			sess.save(arg64);
 
+			log.info("Registrando deposito " + new Gson().toJson(arg64));
+			
+			try { 
+				
+				arg63.getId().setTiCveN(sucursal);
+				arg63.getId().setPtNumN(pedido);
+				arg63.getId().setDepNumN(deposito);
+				arg63.setPtdepEstStr("A");
+				sess.save(arg63);
+				log.info("Registrando relacion deposito " + new Gson().toJson(arg63));
+			}catch (Exception e) 
+			{
+				log.error("Falló registro de relacion pedido-deposito");
+				log.error(e.getMessage(),e);
+			}
+			tx.commit();
+		}catch (Exception e) 
+		{
+			tx.rollback();
+			insertado=false;
+			log.error("Falló el registro del depósito ");
+			log.error(e.getMessage(), e );
+		}
+		return insertado;
+	}
+	
 	public PedidoRespuesta guardarDoctos(Long value, Double Cantidad, String IdSocio, Session sess)
 			throws SQLException {
 		PedidoRespuesta respuesta = new PedidoRespuesta();
