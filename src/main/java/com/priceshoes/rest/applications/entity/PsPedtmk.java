@@ -38,7 +38,9 @@ public class PsPedtmk implements Serializable {
 	private String soIdStr;
 	private String usrCvePstr;
 	private Long ptOnlineN;
-
+	private Integer mcpCveN;  
+	private Integer ptCotwebN;
+	
 	@EmbeddedId
 	public PsPedtmkPK getId() {
 		return this.id;
@@ -271,5 +273,23 @@ public class PsPedtmk implements Serializable {
 
 	public void setPtOnlineN(Long ptOnlineN) {
 		this.ptOnlineN = ptOnlineN;
+	}
+	
+	@Column(name = "MCP_CVE_N")
+	public Integer getMcpCveN() {
+		return mcpCveN;
+	}
+
+	public void setMcpCveN(Integer mcpCveN) {
+		this.mcpCveN = mcpCveN;
+	}
+	
+	@Column(name = "PT_COTWEB_N")
+	public Integer getPtCotwebN() {
+		return ptCotwebN;
+	}
+
+	public void setPtCotwebN(Integer ptCotwebN) {
+		this.ptCotwebN = ptCotwebN;
 	}
 }

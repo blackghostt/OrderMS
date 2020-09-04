@@ -4,6 +4,7 @@ import com.google.gson.Gson;
 import com.priceshoes.rest.applications.bean.ArticuloPedido;
 import com.priceshoes.rest.applications.bean.FormaPagoPedido;
 import com.priceshoes.rest.applications.bean.Pedido;
+import com.priceshoes.rest.applications.consulta.CancelRequest;
 import com.priceshoes.rest.applications.consulta.PedidoConsulta;
 import com.priceshoes.rest.applications.entity.MemberAddress;
 import com.priceshoes.rest.applications.entity.PedidoMagento;
@@ -15,14 +16,19 @@ import com.priceshoes.rest.applications.entity.PsPedtmkAplval;
 import com.priceshoes.rest.applications.entity.PsPedtmkDep;
 import com.priceshoes.rest.applications.entity.PsPedtmkDet;
 import com.priceshoes.rest.applications.entity.PsPedtmkDetPK;
+import com.priceshoes.rest.applications.entity.PsPedtmkInfMppago;
+import com.priceshoes.rest.applications.entity.PsPedtmkSald;
 import com.priceshoes.rest.applications.entity.PsPedtmkVin;
 import com.priceshoes.rest.applications.repository.OrderRepository;
+import com.priceshoes.rest.applications.respuesta.CancelResponse;
 import com.priceshoes.rest.applications.respuesta.PedidoRespuesta;
 import com.priceshoes.rest.applications.utils.Constantes;
 import java.math.BigDecimal;
 import java.sql.SQLException;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
+
 import org.apache.log4j.Logger;
 import org.hibernate.Criteria;
 import org.hibernate.SQLQuery;
@@ -43,18 +49,16 @@ public class OrderRepositoryImpl implements OrderRepository {
 	@Autowired 	private Environment env;
 	
 	@Transactional(readOnly = false, rollbackFor = { Exception.class }, propagation = Propagation.REQUIRED)
-	public PedidoRespuesta savePedido(PedidoConsulta consulta) {
+	public PedidoRespuesta savePedido(PedidoConsulta consulta) 
+	{
 		PedidoRespuesta respuesta = new PedidoRespuesta();
-
 		try 
-		{
-			respuesta = this.guardaPedido(consulta);
-		} catch (Exception arg3) {
+		{ respuesta = this.guardaPedido(consulta); } 
+		catch (Exception arg3) {
 			log.info((new Gson()).toJson(consulta));
 			log.error(arg3.getMessage(), arg3);
 			respuesta.setMensaje(arg3.getMessage());
 		}
-
 		return respuesta;
 	}
 
@@ -105,61 +109,8 @@ public class OrderRepositoryImpl implements OrderRepository {
 		try
 		{	tx = sess.beginTransaction();
 			Integer[] idDirecciones = new Integer[] { pedidoAlta.getDireccionEnvio().getIdDireccionPs(),pedidoAlta.getDireccionPago().getIdDireccionPs() };
-			Iterator altaPed;
-			if (pedidoAlta.getFormasPagos() != null)
-			{
-				if (pedidoAlta.getFormasPagos().getItem().size() == 0)
-				{	errorConocido = true;
-					respuesta.setCodigo(Constantes.COD_ERROR_ENTRADA_INSUFICIENTE);
-					respuesta.setMensaje("Todos los datos de la forma de pago son requeridos.");
-					log.error(new Gson().toJson(respuesta));
-					return respuesta;
-				}
-
-				altaPed = pedidoAlta.getFormasPagos().getItem().iterator();
-
-				label874: while (true)
-				{	while (true)
-				{
-					if (!altaPed.hasNext())
-					{  break label874; }
-
-					FormaPagoPedido iter = (FormaPagoPedido) altaPed.next();
-					if (((FormaPagoPedido) pedidoAlta.getFormasPagos().getItem().get(0)).getFormaPago() != null &&
-							((FormaPagoPedido) pedidoAlta.getFormasPagos().getItem().get(0)).getCantidad()  != null )
-					{
-						String query = iter.getFormaPago();
-						log.info("iter.getFormaPago " + query );
-						String iterUser = "";
-						iterUser = iterUser + "SELECT CLAVE ";
-						iterUser = iterUser + "  FROM (SELECT ROWNUM AS CONSE, CLAVE";
-						iterUser = iterUser + " \t       FROM (SELECT FPE_CVE_STR AS CLAVE";
-						iterUser = iterUser + "                  FROM PS_FPAGO_ECOMM";
-						iterUser = iterUser + "                 WHERE FPE_CVE_STR = \'" + query + "\'";
-						iterUser = iterUser + "                 UNION";
-						iterUser = iterUser + "                 SELECT \'0\' FROM DUAL)";
-						iterUser = iterUser + "           ORDER BY 1)";
-						iterUser = iterUser + " WHERE CONSE = 2";
-						SQLQuery usuario = sess.createSQLQuery(iterUser);
-						query = (String) usuario.uniqueResult();
-						log.info("Forma pago " + query );
-						if (query.equals("0"))
-						{	errorConocido = true;
-							respuesta.setCodigo(Constantes.COD_ERROR_FORMATO_DIRECCION);
-							respuesta.setMensaje("La forma de pago es incorrecta.");
-							break label874;
-						}
-					} else {
-						errorConocido = true;
-						respuesta.setCodigo(Constantes.COD_ERROR_ENTRADA_INSUFICIENTE);
-						respuesta.setMensaje("Todos los datos de la forma de pago son requeridos.");
-					}
-
-				}//end while
-				}//label874
-			}//if getFormasPagos
-
-			altaPed = pedidoAlta.getItems().getItem().iterator();
+			
+			Iterator altaPed = pedidoAlta.getItems().getItem().iterator();
 
 			while (altaPed.hasNext())
 			{	ArticuloPedido arg47 = (ArticuloPedido) altaPed.next();
@@ -355,7 +306,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 			arg48.setPtCosenvN(pedidoAlta.getGastosEnvio());
 			arg48.setPtSegmensN(pedidoAlta.getSeguroMensajeria());
 			arg48.setPtDescN(Double.valueOf(0.0D));
-			arg48.setPtEstStr("A");
+			arg48.setPtEstStr( "A");
 			arg48.setPtResurN(Long.valueOf(0L));
 			arg48.setPtNresurN(Long.valueOf(0L));
 			arg48.setPtParesN(Long.valueOf(1L));
@@ -364,7 +315,8 @@ public class OrderRepositoryImpl implements OrderRepository {
 			arg48.setPtTipStr(pedidoAlta.getTipoPedido());
 			arg48.setPtSodEnvN(pedidoAlta.getDireccionEnvio().getIdDireccionPs());
 			arg48.setPtSodFacN(pedidoAlta.getDireccionPago().getIdDireccionPs());
-			arg48.setPtOnlineN(Long.valueOf(pedidoAlta.getFormaPedido().equals("A") ? 0L : 1L));
+			arg48.setPtOnlineN(Long.valueOf(pedidoAlta.getFormaPedido().equals("O") ? 1L : 0L)); 
+			arg48.setPtCotwebN(1);
 			Double dblTotalPed = Double.valueOf(0.0D);
 			int numArt = 0;
 			long intTotArt = 0L;
@@ -401,7 +353,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 			log.info("Pedido Magento\t: " + pedidoAlta.getPedidoMagento());
 			log.info("Id usuario\t\t: " + arg48.getSoIdStr());
 			log.info("Fecha de pedido \t: " + arg48.getPtFecDt());
-			log.info("Usuario\t\t\t: " + arg48.getUsrCvePstr());
+			log.info("Usuario\t\t: " + arg48.getUsrCvePstr());
 			log.info("Tipo de Pedido \t: " + arg48.getPtTipStr());
 			log.info("Importe total \t: " + arg48.getPtImporteN());
 			log.info("Gastos de envio\t: " + arg48.getPtCosenvN());
@@ -437,7 +389,8 @@ public class OrderRepositoryImpl implements OrderRepository {
 					oferta = Long.valueOf(0L);
 					arg58.setPtdOferN(oferta);
 					arg58.setPtdEstStr(arg61.getArticulo().getApartado());
-
+					arg58.setPtdExconN(0L);
+					
 					if (arg61.getArticulo().getApartado().equals("T")) {
 						arg58.setPtdCotN(Long.valueOf(1L));
 					} else {
@@ -448,7 +401,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 					sess.save(arg58);
 					log.info("");
 					log.info("Articulo \t:" + arg58.getIdArt());
-					log.info("Talla\t \t:" + arg58.getTaCveN());
+					log.info("Talla\t:" + arg58.getTaCveN());
 					log.info("Precio\t:" + arg58.getPtdPrecN());
 					log.info("Tipo   \t:" + arg58.getPtdEstStr());
 					log.info("");
@@ -472,20 +425,10 @@ public class OrderRepositoryImpl implements OrderRepository {
 						critFP.add(Restrictions.eq("fpeCveStr", cveFormaPago));
 						fPagoEcomm = (PsFPagoEcomm) critFP.uniqueResult();
 	
-						if (fPagoEcomm.getFpeCveStr().equals("F")) //FREE
-						{	
-							log.info("Forma de pago Free");
-							respuesta.setBandera(true);
-							respuesta.getFormaPagoPedido().setFormaPago(cveFormaPago);
-							respuesta.getFormaPagoPedido().setCantidad(formaPago.getCantidad());
-							this.guardarDoctos(value, respuesta.getFormaPagoPedido().getCantidad(),arg48.getSoIdStr(), sess);
-						} else if (fPagoEcomm.getFpeCveStr().equals("S")) //SALDO
+						if (fPagoEcomm.getFpeCveStr().equals("S")) //Saldo
 						{	
 							log.info("Forma de pago Saldo");
-							respuesta.setBanderaSaldo(true);
-							respuesta.getFormaPagoPedido().setFormaPago(cveFormaPago);
-							respuesta.getFormaPagoPedido().setCantidad(formaPago.getCantidad());
-							this.guardarSaldo(value, respuesta.getFormaPagoPedido().getCantidad(),arg48.getSoIdStr(), sess);
+							registrarUsoDeSaldo(value,SUCURSAL,soIdStr,formaPago.getCantidad());
 						} else if (fPagoEcomm.getFpeCveStr().equals("C")) //CREDITO
 						{
 							log.info("Forma de pago Credito ");
@@ -493,7 +436,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 							log.info("Credito " + new Gson().toJson(tmkVin));
 							sess.save(tmkVin);
 						}
-						 else if (fPagoEcomm.getFpeCveStr().equals("V")) //VALE
+						 else if (fPagoEcomm.getFpeCveStr().equals("V")) //VALE AFILIACION
 						{	log.info("Utilizar vale ");
 							try 
 							{	String query = " SELECT VA_NUM_N FROM PS_VALES A " + 
@@ -510,29 +453,28 @@ public class OrderRepositoryImpl implements OrderRepository {
 								}
 							}catch (Exception e){ log.error(e.getMessage(),e); }
 						}
-						else	
+						else if ( fPagoEcomm.getFpeCveStr().equals("Y")   //PAYPAL 
+							   || fPagoEcomm.getFpeCveStr().equals("W") ) //PAGO CON TARJETA
 						{
-							if (!fPagoEcomm.getFpeCveStr().equals("K"))
+							boolean insertado = false;
+							int countDep = 1;
+							Integer intentos = Integer.parseInt( env.getProperty("depositos.reintentos") );
+							while(!insertado && countDep <= intentos )
 							{
-								boolean insertado = false;
-								int countDep = 1;
-								while(!insertado && countDep <= 10 )
-								{
-									log.info("Deposito intento "+countDep);
-									insertado = registrarDeposito
-												(countDep,
-												SUCURSAL,
-												value.longValue(),
-												fPagoEcomm.getBaCveN(),
-												soIdStr,
-												pedidoAlta.getImporteTotal(),
-												formaPago.getReferencia().equals("") ? "009999" : formaPago.getReferencia(),
-												fechaServ,	
-												pedidoAlta.getFormaPedido().equals("A") ? "A" : "T",
-												fPagoEcomm.getFpeTipoStr(),
-												cveFormaPago);
-									countDep++;
-								}
+								log.info("Deposito intento "+countDep +" del pedido " +value.longValue());
+								insertado = registrarDeposito
+											(countDep,
+											SUCURSAL,
+											value.longValue(),
+											fPagoEcomm.getBaCveN(),
+											soIdStr,
+											formaPago.getCantidad(),
+											"009999",
+											fechaServ,	
+											"T",
+											fPagoEcomm.getFpeTipoStr(),
+											cveFormaPago);
+								countDep++;
 							}
 						}
 					}//end while
@@ -549,6 +491,9 @@ public class OrderRepositoryImpl implements OrderRepository {
 			pedidoMagento.setPtmMagentoStr( pedidoAlta.getPedidoMagento() );
 			pedidoMagento.setPtNumN(value);
 			sess.save(pedidoMagento);
+			
+			registrarInfoMPPago(value, SUCURSAL.intValue(), consulta.getPedido().getFormasPagos().getItem() );			
+			
 			tx.commit();
 			sess.flush();
 
@@ -585,6 +530,59 @@ public class OrderRepositoryImpl implements OrderRepository {
 
 		log.info(" ==== fin de registro de orden ");
 		return respuesta;
+	}
+	
+	private void registrarUsoDeSaldo(Long pedido, Long sucursal, String socio, Double cantidad) 
+	{
+		if( cantidad <= 0 )
+		{
+			log.error("Pedido:"+pedido +" saldo:"+cantidad);
+			log.error("El saldo a utilizar debe ser mayor a cero");
+			return;
+		}
+		
+		Transaction tx = null;
+		Session sess = sessionFactory.openSession();
+		try
+		{
+			tx = sess.beginTransaction();
+			PsPedtmkSald pedtmkSald = new PsPedtmkSald(sucursal,pedido);
+			pedtmkSald.setSoIdStr(socio);
+			pedtmkSald.setPtsSaldN(cantidad);
+			pedtmkSald.setPtsEstStr("A");
+			sess.save(pedtmkSald);
+			tx.commit();
+			log.info("registrarUsoDeSaldo pedtmkSald" + new Gson().toJson(pedtmkSald));
+		}
+		catch (Exception e) { tx.rollback();  log.error(e.getMessage()); }
+		finally {  sess.close(); }
+		
+	}
+
+	private void registrarInfoMPPago(Long pedido, Integer sucursal, List<FormaPagoPedido> list )
+	{
+		Transaction tx = null;
+		Session sess = sessionFactory.openSession();
+		try
+		{
+			tx = sess.beginTransaction();
+			
+			for(FormaPagoPedido fp : list)
+			{
+				PsPedtmkInfMppago  infoPago = new PsPedtmkInfMppago(pedido,sucursal,fp.getFormaPago());
+				infoPago.setPagFregDt(		new Date());
+				infoPago.setPagTipoStr( 	fp.getTypeId()		);
+				infoPago.setPagStatusStr(	fp.getStatus() 		);
+				infoPago.setPagMontoN(		fp.getCantidad() 	);
+				infoPago.setPagPagadoN(		fp.getPaidAmount()	);
+				sess.save(infoPago);
+				log.info("registrarInfoMPPago " + new Gson().toJson(infoPago));
+			}
+			
+			tx.commit();
+		}
+		catch (Exception e) { tx.rollback();  log.error(e.getMessage()); }
+		finally {  sess.close(); }
 	}
 	
 	private boolean registrarDeposito(int count, Long sucursal,Long pedido, Long baCveN, String soIdStr,Double importeTotal,
@@ -642,7 +640,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 			tx.rollback();
 			insertado=false;
 			log.error("Falló el registro del depósito ");
-			log.error(e.getMessage(), e );
+			log.error(e.getMessage());
 		}finally 
 		{
 			sess.close();
@@ -710,6 +708,167 @@ public class OrderRepositoryImpl implements OrderRepository {
 		}
 
 		return respuesta;
+	}
+
+	@Override
+	public CancelResponse cancelOrder(CancelRequest request) 
+	{
+		CancelResponse response = new CancelResponse();
+		log.info("Solicitud de cancelación de pedido " + new Gson().toJson(request));
+		
+		if(request.getSucursal()==null || request.getPedido()==null)
+		{
+			response.setCodigo(-1);
+			response.setMensaje("Sucursal y pedido requeridos");
+			log.error(response.getMensaje());
+			return response;
+		}
+		
+		PsPedtmk pedidoTmk = getPedidoTmk(request.getSucursal(),request.getPedido());
+		log.info("Pedido a cancelar "+new Gson().toJson(pedidoTmk));
+		if( pedidoTmk== null )
+		{
+			response.setCodigo(-1);
+			response.setMensaje("Pedido no encontrado");
+			log.error(response.getMensaje());
+			return response;
+		}
+		if( pedidoTmk.getPtEstStr().equals("V") )
+		{
+			response.setCodigo(-1);
+			response.setMensaje("Pedido ya vendido");
+			log.error(response.getMensaje());
+			return response;
+		}
+		if( pedidoTmk.getPtEstStr().equals("C") )
+		{
+			response.setCodigo(-1);
+			response.setMensaje("Pedido ya cancelado");
+			log.error(response.getMensaje());
+			return response;
+		}
+		
+		log.info("Verificando formas de pago");
+		boolean pagadoConMercadoPago = verificarMercadoPago(request.getSucursal(),request.getPedido());
+		log.info("Pagado con mercado pago:" +pagadoConMercadoPago);
+		
+		if( !pagadoConMercadoPago )
+		{
+			response.setCodigo(-1);
+			response.setMensaje("Forma de pago no aplica para cancelación");
+			log.error(response.getMensaje());
+			return response;
+		}	
+		
+		log.info("Verificando depositos");
+		int depositos = verificarDepositos(request.getSucursal(),request.getPedido());
+		log.info("Depositos relacionados: "+depositos );
+		if( depositos >0 )
+		{
+			response.setCodigo(-1);
+			response.setMensaje("El pedido ya tiene un depósito relacionado. No es posible cancelar el pedido.");
+			log.error(response.getMensaje());
+			return response;
+		}
+		else
+		{
+			cancelarPedido( request.getSucursal(),request.getPedido());
+			response.setMensaje("Pedido cancelado");
+			log.info(response.getMensaje());
+		}	
+		return response;
+	}
+
+	private void cancelarPedido(Long sucursal, Long pedido) 
+	{
+		Transaction tx = null;
+		Session sess = sessionFactory.openSession();
+		try
+		{
+			tx = sess.beginTransaction();
+			PsPedtmk pedidoTmk = (PsPedtmk) sess.createCriteria(PsPedtmk.class)
+								.add(Restrictions.eq("id.tiCveN", sucursal))
+								.add(Restrictions.eq("id.ptNumN", pedido))
+								.uniqueResult();
+			if( pedidoTmk!=null )
+			{
+				pedidoTmk.setPtEstStr("C");
+				pedidoTmk.setMcpCveN(9); // SOLICITUD SOCIO WEB
+			}	
+			tx.commit();
+		}
+		catch (Exception e) { tx.rollback();  log.error(e.getMessage()); }
+		finally {  sess.close(); }
+	}
+
+	private int verificarDepositos(Long sucursal, Long pedido) 
+	{
+		StringBuilder q = new StringBuilder();
+		int depositos = 0;
+		q.append(" SELECT COUNT(*) ");	 
+		q.append(" FROM PS_PEDTMK_DEP ");	 
+		q.append(" WHERE PT_NUM_N =  "+pedido);	
+		q.append(" AND TI_CVE_N =  "+sucursal);	
+
+		Transaction tx = null;
+		Session sess = sessionFactory.openSession();
+		try
+		{
+			tx = sess.beginTransaction();
+			BigDecimal result = (BigDecimal) sess.createSQLQuery(q.toString()).uniqueResult();
+			depositos = result.intValue();
+			tx.commit();
+		}
+		catch (Exception e) { tx.rollback();  log.error(e.getMessage()); }
+		finally {  sess.close(); }
+		
+		return depositos;
+	}
+
+	private boolean verificarMercadoPago(Long sucursal, Long pedido) 
+	{
+		StringBuilder q = new StringBuilder();
+		boolean mercadoPago = false;
+		q.append(" SELECT COUNT(*)  "); 
+		q.append(" FROM PPVMX.PS_PEDTMK_INF_MPPAGO "); 
+		q.append(" WHERE PT_NUM_N = "+pedido);
+		q.append(" AND TI_CVE_N = "+sucursal);
+		q.append(" AND FPE_CVE_STR = 'M' ");
+		
+		Transaction tx = null;
+		Session sess = sessionFactory.openSession();
+		try
+		{
+			tx = sess.beginTransaction();
+			BigDecimal result = (BigDecimal) sess.createSQLQuery(q.toString()).uniqueResult();
+			if (result.intValue()>0)
+				mercadoPago=true;
+			
+			tx.commit();
+		}
+		catch (Exception e) { tx.rollback();  log.error(e.getMessage()); }
+		finally {  sess.close(); }
+		
+		return mercadoPago;
+	}
+
+	private PsPedtmk getPedidoTmk(Long sucursal, Long pedido) 
+	{
+		PsPedtmk pedidoTmk = null;
+		Transaction tx = null;
+		Session sess = sessionFactory.openSession();
+		try
+		{
+			tx = sess.beginTransaction();
+			pedidoTmk = (PsPedtmk) sess.createCriteria(PsPedtmk.class)
+								 .add(Restrictions.eq("id.tiCveN", sucursal))
+								 .add(Restrictions.eq("id.ptNumN", pedido))
+								 .uniqueResult();
+			 tx.commit();
+		}
+		catch (Exception e) { tx.rollback();  log.error(e.getMessage()); }
+		finally {  sess.close(); }
+		return pedidoTmk;
 	}
 	
 	

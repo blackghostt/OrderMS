@@ -1,0 +1,13 @@
+#Para habilitar nueva sucursal
+1- cambiar nombre del log
+2- cambiar la conexion a base de datos en hikari.properties
+3- cambiar nombre del bean en AppConfig.getDataSource 
+
+#Clases clave
+-MemberRepositoryHibernateImpl
+-AppConfig
+-OrderRepositoryImpl
+
+# Log
+27/08/2020 Se agrega campo PsPedtmk.ptCotwebN con valor default ->  arg48.setPtCotwebN(1);
+27/08/2020 Se actualizar war (ecatepec) en produccion
