@@ -1,7 +1,9 @@
 package com.priceshoes.rest.applications.order;
 
 import com.priceshoes.rest.applications.AbstractRestController;
+import com.priceshoes.rest.applications.consulta.CancelRequest;
 import com.priceshoes.rest.applications.consulta.PedidoConsulta;
+import com.priceshoes.rest.applications.respuesta.CancelResponse;
 import com.priceshoes.rest.applications.respuesta.PedidoRespuesta;
 import com.priceshoes.rest.applications.service.OrderService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,7 +24,8 @@ public class OrderController extends AbstractRestController {
 	public ResponseEntity<PedidoRespuesta> savePedido(@RequestBody PedidoConsulta consulta) {
 		PedidoRespuesta respuesta = null;
 
-		try {
+		try 
+		{
 			respuesta = this.orderService.savePedido(consulta);
 		} catch (Exception arg3) {
 			respuesta = new PedidoRespuesta();
@@ -32,5 +35,23 @@ public class OrderController extends AbstractRestController {
 		}
 
 		return ResponseEntity.ok(respuesta);
+	}
+	
+	@RequestMapping(value = { "/cancelOrder" }, method = { RequestMethod.POST })
+	public ResponseEntity<CancelResponse> cancelOrder(@RequestBody CancelRequest request) 
+	{
+		CancelResponse response = new CancelResponse();
+
+		try 
+		{
+			response = this.orderService.cancelOrder(request);
+		} catch (Exception arg3) {
+			
+			response.setCodigo(HttpStatus.INTERNAL_SERVER_ERROR.value());
+			response.setMensaje(arg3.toString());
+			this.logError(arg3.toString());
+		}
+
+		return ResponseEntity.ok(response);
 	}
 }

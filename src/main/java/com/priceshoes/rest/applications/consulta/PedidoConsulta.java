@@ -5,12 +5,12 @@ import com.priceshoes.rest.applications.bean.Pedido;
 import com.priceshoes.rest.applications.bean.PedidoLite;
 
 public class PedidoConsulta {
-	private PedidoLite pedidoLite;
-	private boolean agregarGuia = false;
-	private boolean actualizarEstatus = false;
-	private Pedido pedido;
+	private PedidoLite 		pedidoLite;
+	private boolean 		agregarGuia = false;
+	private boolean 		actualizarEstatus = false;
+	private Pedido 			pedido;
 	private FormaPagoPedido formaPagoPedido;
-
+	
 	public PedidoLite getPedidoLite() {
 		return this.pedidoLite;
 	}
@@ -50,4 +50,5 @@ public class PedidoConsulta {
 	public void setFormaPagoPedido(FormaPagoPedido formaPagoPedido) {
 		this.formaPagoPedido = formaPagoPedido;
 	}
+
 }

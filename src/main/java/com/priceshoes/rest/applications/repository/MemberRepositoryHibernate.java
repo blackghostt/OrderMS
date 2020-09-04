@@ -11,4 +11,6 @@ public interface MemberRepositoryHibernate {
 	byte[] getImage(String arg0);
 
 	MemberBalance getBalance(String arg0);
+
+	SocioRespuesta updateMember(MemberBean memberBean);
 }
