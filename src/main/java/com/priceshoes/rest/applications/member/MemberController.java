@@ -303,4 +303,14 @@ public class MemberController extends AbstractRestController {
 		log.info("MemberBean:" + memberBean.getSocio().getNombre());
 		return ResponseEntity.ok(respuesta);
 	}
+	
+	@RequestMapping(method={ RequestMethod.POST },value={"/updateMember" }, produces = { "application/json","application/xml" })
+	@ResponseBody
+	public ResponseEntity<?> updateCustomer(@RequestBody MemberBean memberBean) throws IOException, MemberCreationException 
+	{
+		SocioRespuesta respuesta = this.memberService.updateMember(memberBean);
+		log.info("============MemberBean=============");
+		log.info("MemberBean:" + memberBean.getPsSocio().getSoIdStr());
+		return ResponseEntity.ok(respuesta);
+	}
 }

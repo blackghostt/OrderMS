@@ -43,7 +43,7 @@ public class AppConfig {
 		return sessionFactory;
 	}
 	
-	@Bean(name = "dataSource-T98")
+	@Bean(name="datasource-T5")
 	public HikariDataSource getDataSource()	
 	{
 		final HikariDataSource ds = new HikariDataSource();

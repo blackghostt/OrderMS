@@ -1,31 +1,48 @@
 package com.priceshoes.rest.applications.bean;
 
-public class FormaPagoPedido {
+public class FormaPagoPedido 
+{
 	protected String formaPago;
 	protected Double cantidad;
 	protected String referencia;
-
+	protected String typeId;
+	protected String status;
+	protected Double paidAmount;
+	
 	public String getFormaPago() {
-		return this.formaPago;
+		return formaPago;
 	}
-
-	public void setFormaPago(String value) {
-		this.formaPago = value;
+	public void setFormaPago(String formaPago) {
+		this.formaPago = formaPago;
 	}
-
 	public Double getCantidad() {
-		return this.cantidad;
+		return cantidad;
 	}
-
-	public void setCantidad(Double value) {
-		this.cantidad = value;
+	public void setCantidad(Double cantidad) {
+		this.cantidad = cantidad;
 	}
-
 	public String getReferencia() {
-		return this.referencia;
+		return referencia;
 	}
-
-	public void setReferencia(String value) {
-		this.referencia = value;
+	public void setReferencia(String referencia) {
+		this.referencia = referencia;
+	}
+	public String getTypeId() {
+		return typeId;
+	}
+	public void setTypeId(String typeId) {
+		this.typeId = typeId;
+	}
+	public String getStatus() {
+		return status;
+	}
+	public void setStatus(String status) {
+		this.status = status;
+	}
+	public Double getPaidAmount() {
+		return paidAmount;
+	}
+	public void setPaidAmount(Double paidAmount) {
+		this.paidAmount = paidAmount;
 	}
 }

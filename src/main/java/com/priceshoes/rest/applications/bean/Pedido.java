@@ -1,23 +1,19 @@
 package com.priceshoes.rest.applications.bean;
 
-import com.priceshoes.rest.applications.bean.ArticuloPedidoCollection;
-import com.priceshoes.rest.applications.bean.Direccion;
-import com.priceshoes.rest.applications.bean.FormasPagoPedidoCollection;
-
 public class Pedido {
-	protected String socioIdPs;
-	protected Direccion direccionEnvio;
-	protected Direccion direccionPago;
-	protected String tipoPedido;
-	protected Double importeTotal;
-	protected Double gastosEnvio;
-	protected Double seguroMensajeria;
-	protected Double descuentoPedido;
-	protected ArticuloPedidoCollection items;
-	protected FormasPagoPedidoCollection formasPagos;
-	protected String formaPedido;
-	protected String pedidoMagento;
-
+	protected String 		socioIdPs;
+	protected Direccion 	direccionEnvio;
+	protected Direccion 	direccionPago;
+	protected String 		tipoPedido;
+	protected Double 		importeTotal;
+	protected Double 		gastosEnvio;
+	protected Double 		seguroMensajeria;
+	protected Double 		descuentoPedido;
+	protected String 		formaPedido;
+	protected String 		pedidoMagento;
+	protected ArticuloPedidoCollection 		items;
+	protected FormasPagoPedidoCollection 	formasPagos;
+	
 	public String getSocioIdPs() {
 		return this.socioIdPs;
 	}
