@@ -7,10 +7,7 @@ import com.priceshoes.rest.applications.bean.MemberBean;
 import com.priceshoes.rest.applications.bean.Socio;
 import com.priceshoes.rest.applications.entity.Member;
 import com.priceshoes.rest.applications.entity.MemberAddress;
-import com.priceshoes.rest.applications.entity.MemberBalance;
-import com.priceshoes.rest.applications.entity.MemberBalanceRowMapper;
 import com.priceshoes.rest.applications.entity.MemberImage;
-import com.priceshoes.rest.applications.entity.SaldosSocio;
 import com.priceshoes.rest.applications.exceptions.AddressNotFoundException;
 import com.priceshoes.rest.applications.exceptions.BeanNotFoundException;
 import com.priceshoes.rest.applications.exceptions.MemberCreationException;
@@ -19,18 +16,15 @@ import com.priceshoes.rest.applications.respuesta.SocioRespuesta;
 import com.priceshoes.rest.applications.utils.Constantes;
 import com.priceshoes.rest.applications.utils.Funciones;
 
-import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Iterator;
-import java.util.List;
 import java.util.TimeZone;
 import javax.persistence.TransactionRequiredException;
 import org.apache.log4j.Logger;
 import org.hibernate.Criteria;
 import org.hibernate.HibernateException;
-import org.hibernate.JDBCException;
 import org.hibernate.SQLQuery;
 import org.hibernate.Session;
 import org.hibernate.SessionFactory;
@@ -38,7 +32,6 @@ import org.hibernate.Transaction;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
-import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
@@ -48,8 +41,6 @@ public class MemberRepositoryHibernateImpl implements MemberRepositoryHibernate 
 	private static Logger log = Logger.getLogger(MemberRepositoryHibernateImpl.class);
 	@Autowired
 	private SessionFactory sessionFactory;
-	@Autowired
-	private JdbcTemplate jdbcTemplate;
 	
 	@Autowired private Environment env;
 	
@@ -218,109 +209,6 @@ public class MemberRepositoryHibernateImpl implements MemberRepositoryHibernate 
 	}
 
 	@Transactional
-	public MemberBalance getBalance(String id) 
-	{
-		MemberBalance memberBalance = null;
-		if ( Boolean.valueOf(env.getProperty("usar.saldo.corpo")))
-		{
-			log.info("Consulta consolidada "+id);
-			String liga ="@lrcorpprice";
-			if( env.getProperty("sys.env").equalsIgnoreCase("TEST"))
-			{
-				liga="";
-				log.info("Consulta consolidada TEST");
-			}	
-			Transaction tx = null;
-			Session sess = sessionFactory.openSession();
-			try
-			{
-				tx = sess.beginTransaction();
-				StringBuilder q = new StringBuilder();
-				BigDecimal utilizado 		= new BigDecimal(0);
-				BigDecimal saldo	 		= new BigDecimal(0);
-				BigDecimal saldoDisponible	= new BigDecimal(0);
-				BigDecimal notas	 		= new BigDecimal(0);
-				BigDecimal vales	 		= new BigDecimal(0);
-				BigDecimal cupon	 		= new BigDecimal(0);
-				
-				if ( Boolean.valueOf(env.getProperty("obtener.saldo.utilizado")))
-				{	log.debug("inicio");
-					q = new StringBuilder();
-					q.append(" select ppvmx.F_ECOMM_SALDO_UTILIZADO"+liga+"('"+id+"') from dual ");
-					utilizado = (BigDecimal) sess.createSQLQuery(q.toString()).uniqueResult();
-					log.debug("Utilizado " + utilizado);
-				}	
-				if ( Boolean.valueOf(env.getProperty("obtener.cupon")))
-				{	log.debug("inicio");
-					q = new StringBuilder();
-					q.append(" select ppvmx.F_ECOMM_CUPON"+liga+"('"+id+"') from dual ");
-					cupon = (BigDecimal) sess.createSQLQuery(q.toString()).uniqueResult();
-					log.debug("Cupón " + cupon);
-				}
-				if ( Boolean.valueOf(env.getProperty("obtener.vales")))
-				{	log.debug("inicio");
-					q = new StringBuilder();
-					q.append(" select ppvmx.F_ECOMM_VALES"+liga+"('"+id+"') from dual ");
-					vales = (BigDecimal) sess.createSQLQuery(q.toString()).uniqueResult();
-					log.debug("Vales " + vales);
-				}
-				if ( Boolean.valueOf(env.getProperty("obtener.notas")))
-				{	log.debug("inicio");
-					q = new StringBuilder();
-					q.append(" select ppvmx.F_ECOMM_NOTAS_CARGO"+liga+"('"+id+"') from dual ");
-					notas = (BigDecimal) sess.createSQLQuery(q.toString()).uniqueResult();
-					log.debug("Notas " + notas);
-				}
-				log.debug("inicio");
-				q = new StringBuilder();
-				q.append(" select ppvmx.F_ECOMM_SALDO"+liga+"('"+id+"') from dual ");
-				saldo = (BigDecimal) sess.createSQLQuery(q.toString()).uniqueResult();
-				log.debug("saldo " + saldo);
-				saldoDisponible = saldo.subtract(utilizado);
-				log.debug("Disponible " + saldoDisponible);
-				
-				memberBalance = new MemberBalance();
-				memberBalance.setCupon( 	cupon);
-				memberBalance.setDepositos( new BigDecimal(0));
-				memberBalance.setNC(		notas);
-				memberBalance.setSaldo(		saldoDisponible);
-				memberBalance.setVales(		vales);
-				
-				tx.commit();
-				
-			}
-			catch (Exception e) { tx.rollback();  log.error(e.getMessage()); }
-			finally {  sess.close(); }
-		}	
-		else
-		{
-			log.info("Consulta simple server remoto");
-			try {
-				String ex = "SELECT PCK_MAGENTO.F_GET_SALDO_NC   (\'"+id+"\') as NC, "
-						+ " PCK_MAGENTO.F_GET_SALDO_VALES 		 (\'"+id+"\') as VALES, "
-						+ " PCK_MAGENTO.F_GET_SALDO_DEPOSITOS	 (\'"+id+"\') as DEPOSITOS, "
-						+ " PCK_MAGENTO.F_GET_SALDO_SOCIO		 (\'"+id+"\') as SOCIO, "
-						+ " (SELECT NVL(SUM(A.VA_MONTO_N),0) "
-						+ " FROM PS_VALES A WHERE A.SO_ID_STR = '"+id+"'  "
-						+ " AND A.VA_EXC_STR = 'F' AND A.VA_EST_STR='A') AS CUPON  "
-						+ "  FROM DUAL ";
-				List memberBalances = this.jdbcTemplate.query(ex, new MemberBalanceRowMapper());
-				if (memberBalances != null && memberBalances.size() > 0) {
-					memberBalance = (MemberBalance) memberBalances.get(0);
-				}
-				log.info(" Balance "+id+" "+new Gson().toJson(memberBalance));
-			} catch (JDBCException arg4) {
-				log.error(arg4.toString());
-			} catch (Exception arg5) {
-				log.error(arg5.toString());
-			}
-		}	
-		
-		log.info(" Balance "+id+" "+new Gson().toJson(memberBalance));
-		return memberBalance;
-	}
-
-	@Transactional
 	public byte[] getImage(String id) {
 		byte[] image = null;
 		Session session = this.sessionFactory.getCurrentSession();
@@ -332,61 +220,5 @@ public class MemberRepositoryHibernateImpl implements MemberRepositoryHibernate 
 		}
 
 		return image;
-	}
-
-	@Override
-	public SocioRespuesta updateMember(MemberBean memberBean) 
-	{
-		log.info("updateMember " + new Gson().toJson(memberBean));
-		int camposModificados = 0;
-		SocioRespuesta response = new SocioRespuesta();
-		Transaction tx = null;
-		Session sess = sessionFactory.openSession();
-		
-		if (memberBean==null || 
-			memberBean.getPsSocio() ==null || 
-			memberBean.getPsSocio().getSoIdStr() ==null
-			)
-		{
-			response.setCodigo(-1);
-			response.setMensaje("Falta información para procesar la petición");
-			return response;
-		}
-		
-		String soIdStr 	= memberBean.getPsSocio().getSoIdStr();
-		String email 	= memberBean.getPsSocio().getSoEmailStr();
-		String telefono = memberBean.getPsSocio().getSoTel4Str(); 
-		try
-		{
-			tx = sess.beginTransaction();
-			Criteria crit = sess.createCriteria(Member.class);
-			crit.add(Restrictions.eq("soIdStr", soIdStr));
-			Member psSocio = (Member) crit.uniqueResult();
-			
-			log.debug("Socio " + new Gson().toJson(psSocio));
-			
-			if( psSocio != null )
-			{
-				if(email!=null && email.trim().length() > 0 )
-				{ 
-					psSocio.setSoEmailStr( email.trim().toLowerCase() );
-					camposModificados++;	
-				}
-				
-				if(telefono!=null && telefono.trim().length() > 0 )
-				{ 
-					psSocio.setSoTel4Str( telefono.trim() );	
-					camposModificados++;
-				}
-				log.info("Datos actualizados");
-				response.setMensaje("Datos actualizados");
-			}
-			tx.commit();
-		}
-		catch (Exception e) { tx.rollback();  log.error(e.getMessage()); }
-		finally {  sess.close(); }
-		
-		response.setCamposModificados(camposModificados);
-		return response;
 	}
 }

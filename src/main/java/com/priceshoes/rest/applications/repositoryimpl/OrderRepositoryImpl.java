@@ -2,6 +2,7 @@ package com.priceshoes.rest.applications.repositoryimpl;
 
 import com.google.gson.Gson;
 import com.priceshoes.rest.applications.bean.ArticuloPedido;
+import com.priceshoes.rest.applications.bean.FormaPagoDet;
 import com.priceshoes.rest.applications.bean.FormaPagoPedido;
 import com.priceshoes.rest.applications.bean.Pedido;
 import com.priceshoes.rest.applications.consulta.CancelRequest;
@@ -17,11 +18,15 @@ import com.priceshoes.rest.applications.entity.PsPedtmkDep;
 import com.priceshoes.rest.applications.entity.PsPedtmkDet;
 import com.priceshoes.rest.applications.entity.PsPedtmkDetPK;
 import com.priceshoes.rest.applications.entity.PsPedtmkInfMppago;
+import com.priceshoes.rest.applications.entity.PsPedtmkInfMppagoDet;
+import com.priceshoes.rest.applications.entity.PsPedtmkNc;
 import com.priceshoes.rest.applications.entity.PsPedtmkSald;
+import com.priceshoes.rest.applications.entity.PsPedtmkVal;
 import com.priceshoes.rest.applications.entity.PsPedtmkVin;
 import com.priceshoes.rest.applications.repository.OrderRepository;
 import com.priceshoes.rest.applications.respuesta.CancelResponse;
 import com.priceshoes.rest.applications.respuesta.PedidoRespuesta;
+import com.priceshoes.rest.applications.transfer.TransferService;
 import com.priceshoes.rest.applications.utils.Constantes;
 import java.math.BigDecimal;
 import java.sql.SQLException;
@@ -41,12 +46,16 @@ import org.springframework.core.env.Environment;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import static com.priceshoes.rest.applications.utils.Constantes.*; 
 
 @Repository
-public class OrderRepositoryImpl implements OrderRepository {
+public class OrderRepositoryImpl implements OrderRepository 
+{
 	private static Logger log = Logger.getLogger(OrderRepositoryImpl.class);
+
 	@Autowired	private SessionFactory sessionFactory;
 	@Autowired 	private Environment env;
+	@Autowired 	private TransferService transferService;
 	
 	@Transactional(readOnly = false, rollbackFor = { Exception.class }, propagation = Propagation.REQUIRED)
 	public PedidoRespuesta savePedido(PedidoConsulta consulta) 
@@ -408,77 +417,58 @@ public class OrderRepositoryImpl implements OrderRepository {
 				}//end for altaTmkDeposito
 			}// end while
 			
-				if (pedidoAlta.getFormasPagos() != null)
+			log.info("Registrando formas de pago y detalle");
+			registrarInfoMPPago(value, SUCURSAL.intValue(), consulta.getPedido().getFormasPagos().getItem() );
+			
+			if (pedidoAlta.getFormasPagos() != null)
+			{
+				new PsPedtmkDep();
+				new PsDeposito();
+				tx.commit();
+				tx = sess.beginTransaction();
+				Iterator arg65 = pedidoAlta.getFormasPagos().getItem().iterator();
+				
+				while (arg65.hasNext())
 				{
-					new PsPedtmkDep();
-					new PsDeposito();
-					tx.commit();
-					tx = sess.beginTransaction();
-					Iterator arg65 = pedidoAlta.getFormasPagos().getItem().iterator();
-	
-					while (arg65.hasNext())
+					FormaPagoPedido formaPago = (FormaPagoPedido) arg65.next();
+					String cveFormaPago = formaPago.getFormaPago();
+					PsFPagoEcomm fPagoEcomm = null;
+					Criteria critFP = sess.createCriteria(PsFPagoEcomm.class);
+					critFP.add(Restrictions.eq("fpeCveStr", cveFormaPago));
+					fPagoEcomm = (PsFPagoEcomm) critFP.uniqueResult();
+
+					if (   SALDO.equals(			fPagoEcomm.getFpeCveStr())   
+						|| CREDIPRICE.equals(		fPagoEcomm.getFpeCveStr())
+						|| CUPON_AFILIACION.equals(	fPagoEcomm.getFpeCveStr()))
+					{	
+						apartarFormaPago(soIdStr,value,SUCURSAL,formaPago ,fPagoEcomm.getFpeCveStr()); 
+					}
+					else if ( PAYPAL.equals(			fPagoEcomm.getFpeCveStr()) 
+						   || TARJETA_CREDITO.equals(	fPagoEcomm.getFpeCveStr()) )
 					{
-						FormaPagoPedido formaPago = (FormaPagoPedido) arg65.next();
-						String cveFormaPago = formaPago.getFormaPago();
-						PsFPagoEcomm fPagoEcomm = null;
-						Criteria critFP = sess.createCriteria(PsFPagoEcomm.class);
-						critFP.add(Restrictions.eq("fpeCveStr", cveFormaPago));
-						fPagoEcomm = (PsFPagoEcomm) critFP.uniqueResult();
-	
-						if (fPagoEcomm.getFpeCveStr().equals("S")) //Saldo
-						{	
-							log.info("Forma de pago Saldo");
-							registrarUsoDeSaldo(value,SUCURSAL,soIdStr,formaPago.getCantidad());
-						} else if (fPagoEcomm.getFpeCveStr().equals("C")) //CREDITO
+						boolean insertado = false;
+						int countDep = 1;
+						Integer intentos = Integer.parseInt( env.getProperty("depositos.reintentos") );
+						while(!insertado && countDep <= intentos )
 						{
-							log.info("Forma de pago Credito ");
-							PsPedtmkVin tmkVin = new PsPedtmkVin(value,SUCURSAL,formaPago.getCantidad(),"A");
-							log.info("Credito " + new Gson().toJson(tmkVin));
-							sess.save(tmkVin);
+							log.info("Deposito intento "+countDep +" del pedido " +value.longValue());
+							insertado = registrarDeposito
+										(countDep,
+										SUCURSAL,
+										value.longValue(),
+										fPagoEcomm.getBaCveN(),
+										soIdStr,
+										formaPago.getCantidad(),
+										"009999",
+										fechaServ,	
+										"T",
+										fPagoEcomm.getFpeTipoStr(),
+										cveFormaPago);
+							countDep++;
 						}
-						 else if (fPagoEcomm.getFpeCveStr().equals("V")) //VALE AFILIACION
-						{	log.info("Utilizar vale ");
-							try 
-							{	String query = " SELECT VA_NUM_N FROM PS_VALES A " + 
-												" WHERE A.VA_EXC_STR = 'F' " + 
-												" AND A.VA_EST_STR='A' " + 
-												" AND A.SO_ID_STR = '"+soIdStr+"' ";
-								BigDecimal result = (BigDecimal) sess.createSQLQuery(query).uniqueResult();
-								log.info(" Vale " + new Gson().toJson(result));
-								if( result!=null && result.longValue() > 0 )
-								{
-									PsPedtmkAplval valeAfi = new PsPedtmkAplval(value,SUCURSAL,result.longValue(),1);
-									log.info("valeAfi " + new Gson().toJson(valeAfi));
-									sess.save(valeAfi);
-								}
-							}catch (Exception e){ log.error(e.getMessage(),e); }
-						}
-						else if ( fPagoEcomm.getFpeCveStr().equals("Y")   //PAYPAL 
-							   || fPagoEcomm.getFpeCveStr().equals("W") ) //PAGO CON TARJETA
-						{
-							boolean insertado = false;
-							int countDep = 1;
-							Integer intentos = Integer.parseInt( env.getProperty("depositos.reintentos") );
-							while(!insertado && countDep <= intentos )
-							{
-								log.info("Deposito intento "+countDep +" del pedido " +value.longValue());
-								insertado = registrarDeposito
-											(countDep,
-											SUCURSAL,
-											value.longValue(),
-											fPagoEcomm.getBaCveN(),
-											soIdStr,
-											formaPago.getCantidad(),
-											"009999",
-											fechaServ,	
-											"T",
-											fPagoEcomm.getFpeTipoStr(),
-											cveFormaPago);
-								countDep++;
-							}
-						}
-					}//end while
-				}// end if getFormasPagos
+					}
+				}//end while
+			}// end if getFormasPagos
 			
 			respuesta.setValue(value);
 
@@ -492,11 +482,11 @@ public class OrderRepositoryImpl implements OrderRepository {
 			pedidoMagento.setPtNumN(value);
 			sess.save(pedidoMagento);
 			
-			registrarInfoMPPago(value, SUCURSAL.intValue(), consulta.getPedido().getFormasPagos().getItem() );			
-			
 			tx.commit();
 			sess.flush();
-
+			
+			transferService.transferirSaldo(SUCURSAL,value);
+			
 		} catch (NumberFormatException arg42)
 		{	log.info((new Gson()).toJson(consulta));
 			log.error(arg42.getMessage(), arg42);
@@ -532,15 +522,123 @@ public class OrderRepositoryImpl implements OrderRepository {
 		return respuesta;
 	}
 	
+	private void apartarFormaPago(String socio, Long pedido,Long sucursal,FormaPagoPedido formaPago, String tipoPago) 
+	{
+		BigDecimal CERO = new BigDecimal(0.00);
+		Transaction tx = null;
+		Session sess = sessionFactory.openSession();
+		try 
+		{	
+			tx = sess.beginTransaction();
+			List<FormaPagoDet> detalle = formaPago.getDetalle();
+			switch(tipoPago)
+			{  
+				case CUPON_AFILIACION:	log.info("Utilizar cupon de afiliacion");
+						if(detalle!=null)
+						{	for(FormaPagoDet det : detalle)
+							{	log.info("Cupon "+new Gson().toJson(det));
+								Long cupon = Long.parseLong( det.getKey().split("-")[1]);
+								PsPedtmkAplval cuponAfiliacion = new PsPedtmkAplval(pedido,sucursal,cupon,1);
+								log.info("PsPedtmkAplval "+new Gson().toJson(cuponAfiliacion));
+								sess.save(cuponAfiliacion);
+							}	
+						}	
+				break;
+				//----------------------------------------------------------------------------------------------------
+				case CREDIPRICE:	log.info("Utilizar CrediPrice");
+						PsPedtmkVin tmkVin = new PsPedtmkVin(pedido,sucursal,formaPago.getCantidad(),"A");
+						log.info("PsPedtmkVin " + new Gson().toJson(tmkVin));
+						sess.save(tmkVin);
+				break;
+				//----------------------------------------------------------------------------------------------------
+				case SALDO: log.info("Utilizar saldo"); //NOTAS, VALES, SALDO SOCIO
+							if(detalle!=null)
+							{	
+								BigDecimal PAGADO_SALDO_SOCIO = new BigDecimal(0.00);
+								for(FormaPagoDet det : detalle)
+								{
+									log.info("Saldo "+new Gson().toJson(det));
+									switch(det.getTipo())
+									{
+										case SALDO_SOCIO:log.info("Saldo socio");
+											PAGADO_SALDO_SOCIO=PAGADO_SALDO_SOCIO.add(new BigDecimal(det.getMonto()));
+										break;
+										
+										case NOTA:log.info("Notas");
+											Long notaOrigen = Long.parseLong(det.getKey().split("-")[0]);
+											Long notaId 	= Long.parseLong(det.getKey().split("-")[1]);
+											String notaSerie= 				 det.getKey().split("-")[2];
+											registrarUsoDeNota(sucursal,notaSerie,notaId,pedido,notaOrigen);
+										break;
+										
+										case VALE:log.info("Vales");
+											Long valeOrigen = Long.parseLong(det.getKey().split("-")[0]);
+											Long valeId 	= Long.parseLong(det.getKey().split("-")[1]);
+											registrarUsoDeVale(sucursal,valeId,pedido,valeOrigen);
+										break;
+									}
+								}
+								
+								if (PAGADO_SALDO_SOCIO.compareTo(CERO) > 0 )
+								{
+									registrarUsoDeSaldo(pedido,sucursal,socio,PAGADO_SALDO_SOCIO.doubleValue());
+								}
+							}
+				break;
+			}
+			
+			tx.commit();	
+		}
+		catch (Exception e) { tx.rollback();  log.error(e.getMessage()); }
+		finally {  sess.close(); }
+	}
+	
+	private void registrarUsoDeVale(Long sucursal,Long vale,Long pedido,Long origen) 
+	{
+		Transaction tx = null;
+		Session sess = sessionFactory.openSession();
+		try
+		{
+			tx = sess.beginTransaction();
+			PsPedtmkVal psvale = new PsPedtmkVal();
+			psvale.getId().setTiCveN(sucursal);
+			psvale.getId().setPtNumN(pedido);
+			psvale.getId().setVaNumN(vale);
+			psvale.setPtvaEstStr("A");
+			psvale.setPsTiCveN(origen);
+			sess.save(psvale);
+			tx.commit();
+			log.info("PsPedtmkVal " + new Gson().toJson(psvale));
+		}
+		catch (Exception e) { tx.rollback();  log.error(e.getMessage()); }
+		finally {  sess.close(); }
+		
+	}
+	
+	private void registrarUsoDeNota(Long sucursal,String serie,Long nota,Long pedido,Long origen) 
+	{
+		Transaction tx = null;
+		Session sess = sessionFactory.openSession();
+		try
+		{
+			tx = sess.beginTransaction();
+			PsPedtmkNc notaC = new PsPedtmkNc();
+			notaC.getId().setTiCveN(sucursal);
+			notaC.getId().setPtNumN(pedido);
+			notaC.getId().setNcSerieStr(serie);
+			notaC.getId().setNcNumN(nota);
+			notaC.setPtncEstStr("A");
+			notaC.setPsTiCveN(origen);
+			sess.save(notaC);
+			tx.commit();
+			log.info("PsPedtmkNc " + new Gson().toJson(notaC));
+		}
+		catch (Exception e) { tx.rollback();  log.error(e.getMessage()); }
+		finally {  sess.close(); }
+		
+	}
 	private void registrarUsoDeSaldo(Long pedido, Long sucursal, String socio, Double cantidad) 
 	{
-		if( cantidad <= 0 )
-		{
-			log.error("Pedido:"+pedido +" saldo:"+cantidad);
-			log.error("El saldo a utilizar debe ser mayor a cero");
-			return;
-		}
-		
 		Transaction tx = null;
 		Session sess = sessionFactory.openSession();
 		try
@@ -552,7 +650,7 @@ public class OrderRepositoryImpl implements OrderRepository {
 			pedtmkSald.setPtsEstStr("A");
 			sess.save(pedtmkSald);
 			tx.commit();
-			log.info("registrarUsoDeSaldo pedtmkSald" + new Gson().toJson(pedtmkSald));
+			log.info("PsPedtmkSald " + new Gson().toJson(pedtmkSald));
 		}
 		catch (Exception e) { tx.rollback();  log.error(e.getMessage()); }
 		finally {  sess.close(); }
@@ -577,6 +675,17 @@ public class OrderRepositoryImpl implements OrderRepository {
 				infoPago.setPagPagadoN(		fp.getPaidAmount()	);
 				sess.save(infoPago);
 				log.info("registrarInfoMPPago " + new Gson().toJson(infoPago));
+				
+				List<FormaPagoDet> detalle = fp.getDetalle();
+				if(detalle!=null)
+				{
+					for(FormaPagoDet det:detalle)
+					{
+						PsPedtmkInfMppagoDet pagoDet = new PsPedtmkInfMppagoDet(infoPago.getId(),det);
+						log.info("pagoDet " + new Gson().toJson(pagoDet));
+						sess.save(pagoDet);
+					}	
+				}	
 			}
 			
 			tx.commit();

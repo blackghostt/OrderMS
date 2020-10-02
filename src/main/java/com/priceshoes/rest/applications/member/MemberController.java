@@ -285,14 +285,6 @@ public class MemberController extends AbstractRestController {
 		return new ResponseEntity(image, HttpStatus.OK);
 	}
 
-	@RequestMapping(method = { RequestMethod.GET }, value = { "/balance/{id}" })
-	@ResponseBody
-	public ResponseEntity<?> getBalance(@PathVariable("id") String id) {
-		HashMap body = new HashMap();
-		body.put("data", this.memberService.getBalance(id));
-		return ResponseEntity.ok(body);
-	}
-
 	@RequestMapping(method = { RequestMethod.POST }, value = { "/createMember" }, produces = { "application/json",
 			"application/xml" })
 	@ResponseBody
@@ -304,13 +296,4 @@ public class MemberController extends AbstractRestController {
 		return ResponseEntity.ok(respuesta);
 	}
 	
-	@RequestMapping(method={ RequestMethod.POST },value={"/updateMember" }, produces = { "application/json","application/xml" })
-	@ResponseBody
-	public ResponseEntity<?> updateCustomer(@RequestBody MemberBean memberBean) throws IOException, MemberCreationException 
-	{
-		SocioRespuesta respuesta = this.memberService.updateMember(memberBean);
-		log.info("============MemberBean=============");
-		log.info("MemberBean:" + memberBean.getPsSocio().getSoIdStr());
-		return ResponseEntity.ok(respuesta);
-	}
 }

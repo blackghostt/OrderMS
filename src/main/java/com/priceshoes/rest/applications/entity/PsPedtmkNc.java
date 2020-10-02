@@ -9,15 +9,15 @@ import javax.persistence.Table;
 
 @Entity
 @Table(name = "PS_PEDTMK_NC")
-public class PsPedtmkNc implements Serializable {
+public class PsPedtmkNc implements Serializable 
+{
 	private static final long serialVersionUID = 1L;
-	@EmbeddedId
-	private PsPedtmkNcPK id;
-	@Column(name = "PS_TI_CVE_N")
-	private Long psTiCveN;
-	@Column(name = "PTNC_EST_STR")
-	private String ptncEstStr;
+	
+	@EmbeddedId						private PsPedtmkNcPK 	id;
+	@Column(name = "PS_TI_CVE_N")	private Long 			psTiCveN;	//Origen de la nota
+	@Column(name = "PTNC_EST_STR")	private String 			ptncEstStr;
 
+	public PsPedtmkNc() { this.id = new PsPedtmkNcPK(); }
 	public PsPedtmkNcPK getId() {
 		return this.id;
 	}

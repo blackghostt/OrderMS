@@ -1,0 +1,42 @@
+{"properties": [
+  {
+    "name": "log.name",
+    "type": "java.lang.String",
+    "description": "A description for 'log.name'"
+  },
+  {
+    "name": "public.host",
+    "type": "java.lang.String",
+    "description": "A description for 'public.host'"
+  },
+  {
+    "name": "public.port",
+    "type": "java.lang.String",
+    "description": "A description for 'public.port'"
+  },
+  {
+    "name": "t1.cron",
+    "type": "java.lang.String",
+    "description": "A description for 't1.cron'"
+  },
+  {
+    "name": "t1.desc",
+    "type": "java.lang.String",
+    "description": "A description for 't1.desc'"
+  },
+  {
+    "name": "t1.enabled",
+    "type": "java.lang.String",
+    "description": "A description for 't1.enabled'"
+  },
+  {
+    "name": "t1.prefix",
+    "type": "java.lang.String",
+    "description": "A description for 't1.prefix'"
+  },
+  {
+    "name": "web.service.transfer",
+    "type": "java.lang.String",
+    "description": "A description for 'web.service.transfer'"
+  }
+]}

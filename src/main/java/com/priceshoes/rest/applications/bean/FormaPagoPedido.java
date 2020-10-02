@@ -1,5 +1,7 @@
 package com.priceshoes.rest.applications.bean;
 
+import java.util.List;
+
 public class FormaPagoPedido 
 {
 	protected String formaPago;
@@ -8,6 +10,7 @@ public class FormaPagoPedido
 	protected String typeId;
 	protected String status;
 	protected Double paidAmount;
+	protected List<FormaPagoDet> detalle;
 	
 	public String getFormaPago() {
 		return formaPago;
@@ -45,4 +48,11 @@ public class FormaPagoPedido
 	public void setPaidAmount(Double paidAmount) {
 		this.paidAmount = paidAmount;
 	}
+	public List<FormaPagoDet> getDetalle() {
+		return detalle;
+	}
+	public void setDetalle(List<FormaPagoDet> detalle) {
+		this.detalle = detalle;
+	}
+	
 }
