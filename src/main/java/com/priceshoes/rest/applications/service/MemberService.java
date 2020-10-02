@@ -2,7 +2,6 @@ package com.priceshoes.rest.applications.service;
 
 import com.priceshoes.rest.applications.bean.MemberBean;
 import com.priceshoes.rest.applications.entity.Member;
-import com.priceshoes.rest.applications.entity.MemberBalance;
 import com.priceshoes.rest.applications.exceptions.MemberCreationException;
 import com.priceshoes.rest.applications.repository.MemberRepository;
 import com.priceshoes.rest.applications.repository.MemberRepositoryHibernate;
@@ -61,12 +60,4 @@ public class MemberService extends AbstractService {
 		return this.memberRepositoryHibernate.getImage(id);
 	}
 
-	public MemberBalance getBalance(String id) {
-		return this.memberRepositoryHibernate.getBalance(id);
-	}
-
-	public SocioRespuesta updateMember(MemberBean memberBean) 
-	{
-		return this.memberRepositoryHibernate.updateMember(memberBean);
-	}
 }

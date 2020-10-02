@@ -5,16 +5,14 @@ import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
 @Embeddable
-public class PsPedtmkNcPK implements Serializable {
+public class PsPedtmkNcPK implements Serializable 
+{
 	private static final long serialVersionUID = 1L;
-	@Column(name = "TI_CVE_N")
-	private long tiCveN;
-	@Column(name = "NC_SERIE_STR")
-	private String ncSerieStr;
-	@Column(name = "NC_NUM_N")
-	private long ncNumN;
-	@Column(name = "PT_NUM_N")
-	private long ptNumN;
+	
+	@Column(name = "TI_CVE_N")		private long tiCveN;
+	@Column(name = "NC_SERIE_STR")	private String ncSerieStr;
+	@Column(name = "NC_NUM_N")		private long ncNumN;
+	@Column(name = "PT_NUM_N")		private long ptNumN;
 
 	public long getTiCveN() {
 		return this.tiCveN;
@@ -48,25 +46,39 @@ public class PsPedtmkNcPK implements Serializable {
 		this.ptNumN = ptNumN;
 	}
 
-	public boolean equals(Object other) {
-		if (this == other) {
-			return true;
-		} else if (!(other instanceof PsPedtmkNcPK)) {
-			return false;
-		} else {
-			PsPedtmkNcPK castOther = (PsPedtmkNcPK) other;
-			return this.tiCveN == castOther.tiCveN && this.ncSerieStr.equals(castOther.ncSerieStr)
-					&& this.ncNumN == castOther.ncNumN && this.ptNumN == castOther.ptNumN;
-		}
+	@Override
+	public int hashCode() {
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + (int) (ncNumN ^ (ncNumN >>> 32));
+		result = prime * result + ((ncSerieStr == null) ? 0 : ncSerieStr.hashCode());
+		result = prime * result + (int) (ptNumN ^ (ptNumN >>> 32));
+		result = prime * result + (int) (tiCveN ^ (tiCveN >>> 32));
+		return result;
 	}
 
-	public int hashCode() {
-		boolean prime = true;
-		byte hash = 17;
-		int hash1 = hash * 31 + (int) (this.tiCveN ^ this.tiCveN >>> 32);
-		hash1 = hash1 * 31 + this.ncSerieStr.hashCode();
-		hash1 = hash1 * 31 + (int) (this.ncNumN ^ this.ncNumN >>> 32);
-		hash1 = hash1 * 31 + (int) (this.ptNumN ^ this.ptNumN >>> 32);
-		return hash1;
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj)
+			return true;
+		if (obj == null)
+			return false;
+		if (getClass() != obj.getClass())
+			return false;
+		PsPedtmkNcPK other = (PsPedtmkNcPK) obj;
+		if (ncNumN != other.ncNumN)
+			return false;
+		if (ncSerieStr == null) {
+			if (other.ncSerieStr != null)
+				return false;
+		} else if (!ncSerieStr.equals(other.ncSerieStr))
+			return false;
+		if (ptNumN != other.ptNumN)
+			return false;
+		if (tiCveN != other.tiCveN)
+			return false;
+		return true;
 	}
+
+	
 }

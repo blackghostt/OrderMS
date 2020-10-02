@@ -1,6 +1,7 @@
 package com.priceshoes.rest.applications.utils;
 
-public class Constantes {
+public class Constantes 
+{
 	public static int COD_ERROR_EXCEPCION = 99;
 	public static String COD_ERROR_EXCEPCION_MSJ = "ERROR DESCONOCIDO";
 	public static int COD_ERROR_ENTRADA_INSUFICIENTE = 1;
@@ -23,4 +24,17 @@ public class Constantes {
 	public static final int TIPO_VALIDACION_AFILIACION = 2;
 	public static final int POR_EMAIL = 1;
 	public static final int POR_ID = 2;
+
+	//-Formas de pago
+	public static final String SALDO			=	"S";
+	public static final String CREDIPRICE		=	"C";
+	public static final String CUPON_AFILIACION	=	"V";
+	public static final String PAYPAL			=	"Y";
+	public static final String TARJETA_CREDITO	=	"W";
+	
+	//Tipo de saldo
+	public static final String NOTA				=	"N";
+	public static final String VALE				=	"V";
+	public static final String SALDO_SOCIO		=	"S";
+	
 }

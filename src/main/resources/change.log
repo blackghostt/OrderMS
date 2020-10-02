@@ -11,3 +11,10 @@
 # Log
 27/08/2020 Se agrega campo PsPedtmk.ptCotwebN con valor default ->  arg48.setPtCotwebN(1);
 27/08/2020 Se actualizar war (ecatepec) en produccion
+11/09/2020 Se habilita el apartado de saldo para notas,vales y saldo socio
+17/09/2020 Se registra detalle de 'saldo socio' para hacer la transferencia de saldo
+18/09/2020 Se implementa cliente para solicitar transferencia de saldo apartado
+18/09/2020 Se actualiza rest-T68.war en QA
+24/09/2020 Se libera rest-T5.war en PRODUCCION
+ 
+

@@ -1,6 +1,7 @@
 package com.priceshoes.rest.applications.config;
 
 import java.util.Properties;
+import java.util.concurrent.Executor;
 
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,12 +11,22 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.orm.hibernate5.HibernateTransactionManager;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
+import org.springframework.scheduling.TaskScheduler;
+import org.springframework.scheduling.annotation.EnableAsync;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.SchedulingConfigurer;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
+import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
 import com.zaxxer.hikari.HikariDataSource;
 
 @Configuration
+@EnableAsync
+@EnableScheduling
 @PropertySource({ "classpath:application.properties","classpath:hikari.properties" })
-public class AppConfig {
+public class AppConfig implements SchedulingConfigurer 
+{
 	@Value("${server.contextPath}")
 	private String context;
 	
@@ -63,5 +74,36 @@ public class AppConfig {
 		txManager.setSessionFactory(sessionFactory);
 		return txManager;
 	}
-
+	//TODO @TEST TareasProgramadas inactivo
+//	@Bean
+//	public TareasProgramadas tareasProgramadasBean()
+//	{
+//		return new TareasProgramadas();
+//	}
+	
+	@Override
+	public void configureTasks(ScheduledTaskRegistrar taskRegistrar) 
+	{
+		taskRegistrar.setScheduler(poolScheduler());
+	}
+	
+	@Bean(name="taskExecutor")
+    public TaskScheduler poolScheduler() 
+	{
+        ThreadPoolTaskScheduler scheduler = new ThreadPoolTaskScheduler();
+        scheduler.setThreadNamePrefix("taskExecutor");
+        scheduler.setPoolSize(15);
+        scheduler.setWaitForTasksToCompleteOnShutdown(false);
+        return scheduler;
+    }
+	
+	@Bean(name = "jobExecutor")
+    public Executor threadPoolTaskExecutor() 
+    {
+		ThreadPoolTaskExecutor threadPoolTaskExecutor = new ThreadPoolTaskExecutor();
+		threadPoolTaskExecutor.setCorePoolSize(15);
+		threadPoolTaskExecutor.setMaxPoolSize(30);
+		threadPoolTaskExecutor.setThreadNamePrefix("jobExecutor");
+        return threadPoolTaskExecutor;
+    }
 }
