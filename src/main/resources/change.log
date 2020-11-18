@@ -1,8 +1,3 @@
-#Para habilitar nueva sucursal
-1- cambiar nombre del log
-2- cambiar la conexion a base de datos en hikari.properties
-3- cambiar nombre del bean en AppConfig.getDataSource 
-
 #Clases clave
 -MemberRepositoryHibernateImpl
 -AppConfig
@@ -16,5 +11,13 @@
 18/09/2020 Se implementa cliente para solicitar transferencia de saldo apartado
 18/09/2020 Se actualiza rest-T68.war en QA
 24/09/2020 Se libera rest-T5.war en PRODUCCION
- 
+13/10/2020 Se genera rest-T42.war (Guadalajara) para QA apuntando a PROD
+13/10/2020 Se genera rest-T97.war (Miravalle) para QA apuntando a PROD
+13/10/2020 Se genera rest-T1.war (Vallejo) para QA apuntando a PROD
+20/10/2020 Se genera rest-T42.war (Guadalajara) para PROD
+20/10/2020 Se genera rest-T97.war (Miravalle) para PROD
+26/10/2020 Se genera rest-T98.war (Arco) en QA apuntando a PROD
+05/11/2020 Se cambia hikari por dbcp2.BasicDataSource
+
+
 

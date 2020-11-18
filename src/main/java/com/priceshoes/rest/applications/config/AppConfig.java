@@ -3,12 +3,16 @@ package com.priceshoes.rest.applications.config;
 import java.util.Properties;
 import java.util.concurrent.Executor;
 
+import javax.sql.DataSource;
+
+import org.apache.commons.dbcp2.BasicDataSource;
 import org.hibernate.SessionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.PropertySource;
+import org.springframework.dao.annotation.PersistenceExceptionTranslationPostProcessor;
 import org.springframework.orm.hibernate5.HibernateTransactionManager;
 import org.springframework.orm.hibernate5.LocalSessionFactoryBean;
 import org.springframework.scheduling.TaskScheduler;
@@ -19,12 +23,10 @@ import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
 import org.springframework.scheduling.concurrent.ThreadPoolTaskScheduler;
 import org.springframework.scheduling.config.ScheduledTaskRegistrar;
 
-import com.zaxxer.hikari.HikariDataSource;
-
 @Configuration
 @EnableAsync
 @EnableScheduling
-@PropertySource({ "classpath:application.properties","classpath:hikari.properties" })
+@PropertySource({ "classpath:application.properties","classpath:app-${spring.profiles.active}.properties" })
 public class AppConfig implements SchedulingConfigurer 
 {
 	@Value("${server.contextPath}")
@@ -54,19 +56,32 @@ public class AppConfig implements SchedulingConfigurer
 		return sessionFactory;
 	}
 	
-	@Bean(name="datasource-T5")
-	public HikariDataSource getDataSource()	
+	@Bean(name = "dataSourceT5",destroyMethod="close")
+	public DataSource getDataSource() 
 	{
-		final HikariDataSource ds = new HikariDataSource();
-		ds.setDataSourceClassName(dataSourceClassName);
-		ds.setMaximumPoolSize(maximumPoolSize);
-		ds.addDataSourceProperty("url",jdbcUrl);
-		ds.addDataSourceProperty("user",username);
-		ds.addDataSourceProperty("password",password);
-		ds.setPoolName("restPoolHikari-T"+priceSucursal);
-		return ds;
+		BasicDataSource dataSource = new BasicDataSource();
+		dataSource.setDriverClassName("oracle.jdbc.driver.OracleDriver");
+		dataSource.setUrl(jdbcUrl);
+		dataSource.setUsername(username);
+		dataSource.setPassword(password);
+		
+		dataSource.setMaxTotal(maximumPoolSize);
+		dataSource.setMaxWaitMillis(2000);
+		dataSource.setValidationQuery("select 1 from dual");
+		dataSource.setTimeBetweenEvictionRunsMillis(500);
+		dataSource.setLogExpiredConnections(true);
+		dataSource.setMaxOpenPreparedStatements(250);
+		dataSource.setRemoveAbandonedTimeout(30);
+		dataSource.setLogAbandoned(true);
+		
+		return dataSource;
 	}
-
+	
+	@Bean
+	public PersistenceExceptionTranslationPostProcessor exceptionTranslation() 	{
+		return new PersistenceExceptionTranslationPostProcessor();
+	}
+	
 	@Bean
 	@Autowired
 	public HibernateTransactionManager transactionManager(SessionFactory sessionFactory){
@@ -74,12 +89,6 @@ public class AppConfig implements SchedulingConfigurer
 		txManager.setSessionFactory(sessionFactory);
 		return txManager;
 	}
-	//TODO @TEST TareasProgramadas inactivo
-//	@Bean
-//	public TareasProgramadas tareasProgramadasBean()
-//	{
-//		return new TareasProgramadas();
-//	}
 	
 	@Override
 	public void configureTasks(ScheduledTaskRegistrar taskRegistrar) 

@@ -30,8 +30,6 @@ public class InventoryOnlineController extends AbstractRestController {
 	private static final Class<InventoryOnlineController> REST_CONTROLLER_NAME = InventoryOnlineController.class;
 	@Value("${public.host}")
 	private String host;
-	@Value("${public.port}")
-	private String port;
 	@Autowired
 	private InventoryOnlineService inventoryOnlineService;
 	@Autowired
